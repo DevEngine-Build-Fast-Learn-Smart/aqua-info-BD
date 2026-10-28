@@ -4,6 +4,7 @@ import { useSite } from '../../app/SiteProvider';
 import { AdminPageHeader } from './AdminPageHeader';
 import { Modal } from '../../components/ui/Modal';
 import type { Resource, Video } from '../../data/types';
+import { assetUrl } from '../../lib/utils';
 
 type Entry = Video | Resource;
 export default function CollectionsPage({ kind }: { kind: 'videos' | 'resources' }) {
@@ -86,7 +87,7 @@ export default function CollectionsPage({ kind }: { kind: 'videos' | 'resources'
           <article className="admin-panel collection-card" key={item.id}>
             {'image' in item ? (
               <div className="collection-image">
-                <img src={item.image} alt={item.location} />
+                <img src={assetUrl(item.image)} alt={item.location} />
                 <span>{item.duration}</span>
               </div>
             ) : (

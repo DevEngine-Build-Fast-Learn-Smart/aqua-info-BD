@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, FileText, Plus, Search, Trash2 } from 'lucide-react';
 import { useSite } from '../../app/SiteProvider';
 import { AdminPageHeader } from './AdminPageHeader';
-import { formatDate } from '../../lib/utils';
+import { assetUrl, formatDate } from '../../lib/utils';
 import { Modal } from '../../components/ui/Modal';
 export default function ArticlesPage() {
   const { data, update, notify } = useSite();
@@ -93,7 +93,7 @@ export default function ArticlesPage() {
                 <tr key={article.id}>
                   <td>
                     <Link className="story-table-title" to={`/admin/articles/${article.id}`}>
-                      <img src={article.image} alt="" />
+                      <img src={assetUrl(article.image)} alt="" />
                       <span>
                         <strong>{article.title}</strong>
                         <small>{article.author}</small>

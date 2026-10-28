@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, BookOpen, FileText, Plus, Video } from 'lucide-react';
 import { useSite } from '../../app/SiteProvider';
 import { AdminPageHeader } from './AdminPageHeader';
-import { formatDate, today } from '../../lib/utils';
+import { assetUrl, formatDate, today } from '../../lib/utils';
 import { useAccess } from './access/AccessProvider';
 export default function OverviewPage() {
   const { data } = useSite();
@@ -92,7 +92,7 @@ export default function OverviewPage() {
           {lead ? (
             <div className="admin-lead-preview">
               <div className="admin-lead-image">
-                <img src={lead.image} alt={lead.imageAlt} />
+                <img src={assetUrl(lead.image)} alt={lead.imageAlt} />
                 <span>THE LEAD STORY</span>
               </div>
               <div>

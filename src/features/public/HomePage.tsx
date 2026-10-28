@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Clock3 } from 'lucide-react';
 import { useSite } from '../../app/SiteProvider';
 import { Reveal } from '../../components/ui/Reveal';
-import { articleTitle, formatDate } from '../../lib/utils';
+import { articleTitle, assetUrl, formatDate } from '../../lib/utils';
 import { MarketStrip } from './MarketStrip';
 import { ArticleCard } from './ArticleCard';
 import { ArticleActions } from './ArticleActions';
@@ -67,7 +67,7 @@ function LeadSection() {
       <div className="container lead-grid">
         <article className="lead-story">
           <Link className="lead-image" to={`/articles/${lead.slug}`}>
-            <img src={lead.image} alt={lead.imageAlt} fetchPriority="high" />
+            <img src={assetUrl(lead.image)} alt={lead.imageAlt} fetchPriority="high" />
             <span className="image-label">
               {t('FROM THE WATER’S EDGE', 'জলের প্রান্ত থেকে')} · {lead.location}
             </span>
@@ -176,7 +176,7 @@ function EconomySection() {
       <div className="container economy-grid">
         <article className="economy-feature">
           <Link className="economy-image" to={`/articles/${feature.slug}`}>
-            <img src={feature.image} alt={feature.imageAlt} loading="lazy" />
+            <img src={assetUrl(feature.image)} alt={feature.imageAlt} loading="lazy" />
             <span className="eyebrow">THE BLUE HORIZON / {feature.location}</span>
           </Link>
           <div className="economy-story">

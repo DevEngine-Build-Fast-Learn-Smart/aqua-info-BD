@@ -33,3 +33,21 @@ export const downloadText = (name: string, content: string, type = 'text/plain')
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
+
+export const assetUrl = (url?: string): string => {
+  if (!url) return '';
+  if (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('data:') ||
+    url.startsWith('blob:')
+  ) {
+    return url;
+  }
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  if (!base) return url;
+  if (url.startsWith(base)) return url;
+  const path = url.startsWith('/') ? url : `/${url}`;
+  return `${base}${path}`;
+};
+

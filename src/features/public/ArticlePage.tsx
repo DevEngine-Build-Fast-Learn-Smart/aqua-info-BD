@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Clock3, MapPin } from 'lucide-react';
 import { useSite } from '../../app/SiteProvider';
-import { articleTitle, formatDate } from '../../lib/utils';
+import { articleTitle, assetUrl, formatDate } from '../../lib/utils';
 import { ArticleActions } from './ArticleActions';
 import { ArticleCard } from './ArticleCard';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -55,7 +55,7 @@ export default function ArticlePage() {
           </div>
         </header>
         <figure className="article-main-image">
-          <img src={article.image} alt={article.imageAlt} />
+          <img src={assetUrl(article.image)} alt={article.imageAlt} />
           <figcaption>
             <MapPin size={13} />
             {article.location} ·{' '}

@@ -2,7 +2,7 @@ import { ArrowUpRight, Clock3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Article } from '../../data/types';
 import { useSite } from '../../app/SiteProvider';
-import { articleTitle, formatDate } from '../../lib/utils';
+import { articleTitle, assetUrl, formatDate } from '../../lib/utils';
 export function ArticleCard({
   article,
   compact = false,
@@ -20,7 +20,7 @@ export function ArticleCard({
     >
       {!compact && (
         <Link to={`/articles/${article.slug}`} className="article-image">
-          <img src={article.image} alt={article.imageAlt} loading="lazy" />
+          <img src={assetUrl(article.image)} alt={article.imageAlt} loading="lazy" />
           <span className="image-label">{article.location}</span>
         </Link>
       )}

@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight, Check, Image, Save } from 'lucide-react';
 import { useSite } from '../../app/SiteProvider';
 import { AdminPageHeader } from './AdminPageHeader';
-import { slugify, today } from '../../lib/utils';
+import { assetUrl, slugify, today } from '../../lib/utils';
 import type { Article } from '../../data/types';
 import { EmptyState } from '../../components/ui/EmptyState';
 export default function ArticleEditorPage() {
@@ -277,7 +277,7 @@ export default function ArticleEditorPage() {
                 <Image size={14} />
                 COVER PHOTOGRAPH
               </span>
-              <img src={form.image} alt={form.imageAlt} />
+              <img src={assetUrl(form.image)} alt={form.imageAlt} />
               <div className="cover-options">
                 {['field-dispatch', 'shrimp-farm', 'biofloc-research'].map((name) => (
                   <button
@@ -288,7 +288,7 @@ export default function ArticleEditorPage() {
                     aria-pressed={form.image.includes(name)}
                     onClick={() => field('image', `/assets/images/${name}.jpg`)}
                   >
-                    <img src={`/assets/images/${name}.jpg`} alt="" />
+                    <img src={assetUrl(`/assets/images/${name}.jpg`)} alt="" />
                     {form.image.includes(name) && <Check size={16} />}
                   </button>
                 ))}

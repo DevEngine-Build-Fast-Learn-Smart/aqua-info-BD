@@ -4,6 +4,7 @@ import { useSite } from '../../app/SiteProvider';
 import { Modal } from '../../components/ui/Modal';
 import { SectionHeading } from './SectionHeading';
 import type { Video } from '../../data/types';
+import { assetUrl } from '../../lib/utils';
 
 export function VideoSection({ standalone = false }: { standalone?: boolean }) {
   const { data, t } = useSite();
@@ -30,7 +31,7 @@ export function VideoSection({ standalone = false }: { standalone?: boolean }) {
                 onClick={() => setActive(video)}
                 aria-label={`${t('Preview', 'প্রিভিউ')} ${t(video.title, video.titleBn)}`}
               >
-                <img src={video.image} alt={video.location} loading="lazy" />
+                <img src={assetUrl(video.image)} alt={video.location} loading="lazy" />
                 <span className="video-duration">
                   {index === 0 ? 'DOCUMENTARY · ' : ''}
                   {video.duration}
@@ -69,7 +70,7 @@ export function VideoSection({ standalone = false }: { standalone?: boolean }) {
             wide
           >
             <div className="video-preview">
-              <img src={active.image} alt={active.location} />
+              <img src={assetUrl(active.image)} alt={active.location} />
               <span>
                 <VideoIcon size={32} />
               </span>

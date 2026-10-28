@@ -1,7 +1,7 @@
-@import url('/assets/fonts/editorial.css');
+@import '../../public/assets/fonts/editorial.css';
 @font-face {
   font-family: 'Kalpurush';
-  src: url('/assets/fonts/kalpurush.ttf') format('truetype');
+  src: url('../../public/assets/fonts/kalpurush.ttf') format('truetype');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;

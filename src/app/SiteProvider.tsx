@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { readSiteData, STORAGE_KEY, writeSiteData } from '../data/storage';
 import type { Language, SiteData } from '../data/types';
-import { localized } from '../lib/utils';
+import { assetUrl, localized } from '../lib/utils';
 
 interface SiteContextValue {
   data: SiteData;
@@ -79,7 +79,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
     if (favicon) {
-      favicon.href = data.settings.logoUrl || '/assets/logo.png';
+      favicon.href = assetUrl(data.settings.logoUrl || '/assets/logo.png');
       favicon.removeAttribute('type');
     }
   }, [data.settings.logoUrl]);

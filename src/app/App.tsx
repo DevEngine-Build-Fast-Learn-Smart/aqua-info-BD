@@ -101,7 +101,7 @@ export default function App() {
     <ErrorBoundary>
       <SiteProvider>
         <AccessProvider>
-          <BrowserRouter>
+          <BrowserRouter basename={import.meta.env.BASE_URL}>
             <NavigationEffects />
             <SplashScreen />
             <Suspense fallback={<Loading />}>
