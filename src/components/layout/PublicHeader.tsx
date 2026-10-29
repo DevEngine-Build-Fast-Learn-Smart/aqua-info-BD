@@ -184,6 +184,10 @@ export function PublicHeader() {
                     {t('About the journal', 'জার্নাল সম্পর্কে')}
                     <ArrowUpRight size={16} />
                   </Link>
+                  <Link to="/contact" onClick={() => setMoreOpen(false)}>
+                    {t('Contact the editorial desk', 'সম্পাদকীয় ডেস্কে যোগাযোগ')}
+                    <ArrowUpRight size={16} />
+                  </Link>
                   <Link to="/admin/" onClick={() => setMoreOpen(false)}>
                     {t('The editorial desk', 'সম্পাদকীয় ডেস্ক')}
                     <ArrowRight size={16} />

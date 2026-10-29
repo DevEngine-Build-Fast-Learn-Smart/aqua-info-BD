@@ -4,12 +4,19 @@ import { useSite } from '../../app/SiteProvider';
 import { Modal } from '../../components/ui/Modal';
 import { SectionHeading } from './SectionHeading';
 import type { Resource } from '../../data/types';
+import { useRemoteList } from '../../lib/useRemoteList';
+import { Pagination } from '../../components/ui/Pagination';
+import { LoadingSkeleton, RequestError } from '../../components/ui/DataState';
 import { downloadText } from '../../lib/utils';
 
 export function KnowledgeSection({ standalone = false }: { standalone?: boolean }) {
   const { data, t } = useSite();
   const [active, setActive] = useState<Resource | null>(null);
-  const resources = data.resources.filter((resource) => resource.status === 'published');
+  const [page, setPage] = useState(1);
+  const result = useRemoteList<Resource>('/resources/', { page }, standalone);
+  const resources = standalone
+    ? result.results
+    : data.resources.filter((resource) => resource.status === 'published');
   return (
     <section className="knowledge-section section-space">
       <div className="container">
@@ -25,7 +32,9 @@ export function KnowledgeSection({ standalone = false }: { standalone?: boolean 
           to={standalone ? undefined : '/knowledge-hub'}
           action={t('Explore all resources', 'সব উপকরণ')}
         />
-        <div className="knowledge-grid">
+        {standalone && result.loading && <LoadingSkeleton />}
+        {standalone && result.error && <RequestError message={result.error} retry={result.retry} />}
+        <div className="knowledge-grid" hidden={standalone && result.loading}>
           {resources.map((resource, index) => (
             <article
               className={`resource-card ${index === 0 ? 'resource-featured' : ''}`}
@@ -40,13 +49,13 @@ export function KnowledgeSection({ standalone = false }: { standalone?: boolean 
                       ? 'FIELD GUIDE'
                       : 'PRACTICAL WORKSHEET'}
                   <span className="resource-format">
-                    {resource.type === 'guide' ? 'TXT' : 'INTERACTIVE'}
+                    {resource.type === 'guide' ? 'GUIDE' : 'INTERACTIVE'}
                   </span>
                 </span>
               </div>
               <h3>{t(resource.title, resource.titleBn)}</h3>
               <p>{resource.description}</p>
-              {index === 0 && (
+              {index === 0 && resource.type === 'calculator' && (
                 <div className="water-metrics">
                   <div>
                     <Waves size={18} />
@@ -82,6 +91,12 @@ export function KnowledgeSection({ standalone = false }: { standalone?: boolean 
             </article>
           ))}
         </div>
+        {!resources.length && (!standalone || (!result.loading && !result.error)) && (
+          <p className="muted">
+            {t('Field guides are being prepared.', 'মাঠ নির্দেশিকা প্রস্তুত হচ্ছে।')}
+          </p>
+        )}
+        {standalone && <Pagination page={page} count={result.count} onChange={setPage} />}
         {active && <ResourceDialog resource={active} onClose={() => setActive(null)} />}
       </div>
     </section>
@@ -91,15 +106,6 @@ function ResourceDialog({ resource, onClose }: { resource: Resource; onClose: ()
   const { t } = useSite();
   const [result, setResult] = useState<number | null>(null);
   const [values, setValues] = useState({ length: '', width: '', depth: '', feed: '', gain: '' });
-  const [completed, setCompleted] = useState<number[]>([]);
-  const guideItems = [
-    'Record the date, weather, and pond identification.',
-    'Note water appearance and any visible changes.',
-    'Record feeding amounts and observed feeding response.',
-    'Log instrument readings, units, and measurement times.',
-    'Record mortalities and unusual observations.',
-    'Share concerns with a qualified local fisheries professional.',
-  ];
   function calculate(event: FormEvent) {
     event.preventDefault();
     setResult(
@@ -113,36 +119,37 @@ function ResourceDialog({ resource, onClose }: { resource: Resource; onClose: ()
       <p className="muted">{resource.description}</p>
       {resource.type === 'guide' ? (
         <>
-          <div className="checklist">
-            {guideItems.map((item, index) => (
-              <label key={item}>
-                <input
-                  type="checkbox"
-                  checked={completed.includes(index)}
-                  onChange={() =>
-                    setCompleted((previous) =>
-                      previous.includes(index)
-                        ? previous.filter((v) => v !== index)
-                        : [...previous, index],
-                    )
-                  }
-                />
-                <span>{item}</span>
-              </label>
-            ))}
+          <div className="guide-body">
+            {t(resource.body || '', resource.bodyBn)
+              .split('\n\n')
+              .filter(Boolean)
+              .map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))}
           </div>
-          <button
-            className="button button-primary"
-            onClick={() =>
-              downloadText(
-                'aqua-info-bd-field-checklist.txt',
-                `Aqua Info BD — Field Observation Checklist\n\n${guideItems.map((item, index) => `${completed.includes(index) ? '[x]' : '[ ]'} ${item}`).join('\n')}`,
-              )
-            }
-          >
-            <Download size={16} />
-            {t('Download checklist', 'তালিকা ডাউনলোড')}
-          </button>
+          {resource.fileUrl ? (
+            <a
+              className="button button-primary"
+              href={resource.fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Download size={16} />
+              {t('Open document', 'নথি খুলুন')}
+            </a>
+          ) : resource.body ? (
+            <button
+              className="button button-primary"
+              onClick={() =>
+                downloadText(`${resource.title}.txt`, t(resource.body || '', resource.bodyBn))
+              }
+            >
+              <Download size={16} />
+              {t('Download guide', 'নির্দেশিকা ডাউনলোড')}
+            </button>
+          ) : (
+            <p>{t('This guide is being prepared.', 'নির্দেশিকা প্রস্তুত হচ্ছে।')}</p>
+          )}
         </>
       ) : (
         <form onSubmit={calculate} className="calculator-form">

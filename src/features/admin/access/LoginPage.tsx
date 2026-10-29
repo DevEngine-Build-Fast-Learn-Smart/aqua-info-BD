@@ -1,18 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Eye,
-  EyeOff,
-  KeyRound,
-  LoaderCircle,
-  LockKeyhole,
-  Waves,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, LoaderCircle, LockKeyhole, Waves } from 'lucide-react';
 import { useAccess } from './AccessProvider';
 import { Brand } from '../../../components/layout/Brand';
-import { DEMO_EMAIL, DEMO_PASSWORD } from './access';
 
 export default function LoginPage() {
   const { currentUser, signIn } = useAccess();
@@ -147,33 +137,8 @@ export default function LoginPage() {
               {!busy && <ArrowRight size={18} />}
             </button>
           </form>
-          <div className="demo-account">
-            <div>
-              <KeyRound size={18} />
-              <strong>Try the owner’s desk</strong>
-              <button
-                className="text-link"
-                onClick={() => {
-                  setEmail(DEMO_EMAIL);
-                  setPassword(DEMO_PASSWORD);
-                  setError('');
-                }}
-              >
-                Fill demo details
-                <ArrowRight size={14} />
-              </button>
-            </div>
-            <p>
-              <span>{DEMO_EMAIL}</span>
-              <code>{DEMO_PASSWORD}</code>
-            </p>
-            <small>
-              Local UI preview. Demo accounts and permissions work in this browser only. Use sample
-              passwords here.
-            </small>
-          </div>
           <p className="login-help">
-            Need a place at the desk? Ask the workspace owner to create your access in{' '}
+            Need a place at the desk? Ask the workspace owner to create your account in{' '}
             <strong>Team & access</strong>.
           </p>
         </div>

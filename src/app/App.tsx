@@ -29,6 +29,7 @@ const SettingsPage = lazy(() => import('../features/admin/SettingsPage'));
 const FooterPage = lazy(() => import('../features/admin/FooterPage'));
 const LoginPage = lazy(() => import('../features/admin/access/LoginPage'));
 const TeamPage = lazy(() => import('../features/admin/access/TeamPage'));
+const ContactPage = lazy(() => import('../features/public/ContactPage'));
 
 function NavigationEffects() {
   const { pathname } = useLocation();
@@ -86,7 +87,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean
     return this.state.failed ? (
       <div className="empty-state">
         <h1>Let’s return to calmer waters.</h1>
-        <p>The page couldn’t be displayed. Your saved local content is still in your browser.</p>
+        <p>The page couldn’t be displayed. Your saved publication content remains on the server.</p>
         <a className="button button-primary" href="/home">
           Reload the journal
         </a>
@@ -116,6 +117,7 @@ export default function App() {
                   <Route path="knowledge-hub" element={<KnowledgePage />} />
                   <Route path="market" element={<MarketPage />} />
                   <Route path="about" element={<AboutPage />} />
+                  <Route path="contact" element={<ContactPage />} />
                   <Route path="subscription" element={<SubscriptionPage />} />
                   <Route path=":categorySlug" element={<CategoryRoute />} />
                   <Route path="*" element={<NotFoundPage />} />

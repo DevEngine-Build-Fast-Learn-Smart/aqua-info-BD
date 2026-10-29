@@ -1,6 +1,7 @@
 export type Language = 'en' | 'bn';
 export type Status = 'published' | 'draft';
 export interface Category {
+  articleCount?: number;
   id: string;
   name: string;
   nameBn: string;
@@ -25,6 +26,8 @@ export interface Article {
   status: Status;
 }
 export interface Video {
+  mediaUrl?: string;
+  descriptionBn?: string;
   id: string;
   title: string;
   titleBn: string;
@@ -35,6 +38,9 @@ export interface Video {
   status: Status;
 }
 export interface Resource {
+  body?: string;
+  bodyBn?: string;
+  fileUrl?: string;
   id: string;
   title: string;
   titleBn: string;
@@ -102,6 +108,8 @@ export interface FooterSettings {
   columns: FooterColumn[];
 }
 export interface SiteData {
+  counts?: { published: number; drafts: number; videos: number; articles: number };
+  features?: { market: boolean; newsletter: boolean; contact: boolean };
   version: 1;
   articles: Article[];
   categories: Category[];

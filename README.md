@@ -1,84 +1,123 @@
 # Aqua Info BD
 
-A modular React + TypeScript frontend for the public publication and its matching editorial desk. The supplied `code.html`, `DESIGN.md`, and `screen.png` are retained as design references.
+React + TypeScript publication and editorial workspace, connected to a separate Django REST backend. The original design references (`code.html`, `DESIGN.md`, `screen.png`) are retained. Published content is read from the backend; there is no local demo-content fallback.
 
-## Run locally
+## Start locally
+
+The backend is in the existing folder:
+
+```text
+/Users/neonecy/Downloads/HAMIM WORKSPACE/aqua_info_bd_backned
+```
+
+The folder’s existing spelling is preserved. Its `.env` contains the initial superadmin credentials from the approved project brief. Credentials are not included in this repository or compiled frontend.
+
+After backend setup, start both processes from this frontend folder:
 
 ```sh
 npm install
+npm run dev:full
+```
+
+Stop any previous frontend/backend server first if it already owns ports 5173/8000. `dev:full` starts Django without its reloader and Vite with frontend hot reload; restart the command after changing backend Python files. Use `AQUA_BACKEND_PATH` to point the launcher at a different backend checkout.
+
+Or start them separately:
+
+```sh
+# Backend terminal
+cd "/Users/neonecy/Downloads/HAMIM WORKSPACE/aqua_info_bd_backned"
+source .venv/bin/activate
+python manage.py runserver 127.0.0.1:8000
+```
+
+```sh
+# Frontend terminal, in this project
 npm run dev
 ```
 
 - Public website: **http://127.0.0.1:5173/home**
+- Editorial login: **http://127.0.0.1:5173/admin/login**
 - Admin workspace: **http://127.0.0.1:5173/admin/**
-- Admin sign-in: **http://127.0.0.1:5173/admin/login**
-- Team access: **http://127.0.0.1:5173/admin/team** (workspace owner)
-- `/` redirects to `/home`; `/admin` redirects to `/admin/`.
+- Swagger: **http://127.0.0.1:8000/api/docs/**
 
-The application uses regular paths rather than hash URLs. These paths work on localhost and on a future domain. When deploying, configure the host to serve `index.html` for application routes (an SPA history fallback). No domain or hosting is configured in this phase.
+The Vite development proxy forwards `/api/` and `/media/` to Django. SQLite keeps local setup small; the backend also supports PostgreSQL through `DATABASE_URL`. See the backend’s README for setup, backup, media serving, deployment, and authentication details.
 
-## Project structure
+## Implemented publishing scope
+
+- English/Bangla articles, drafts, publishing, categories, full-story reading, server-side search and paginated archives.
+- Real image/video/document uploads or media URLs. Videos play uploaded sources or supported YouTube/Vimeo embeds.
+- Published guides with document links or actual guide text. Pond-volume and FCR worksheets remain lightweight frontend calculations when those resource types are published.
+- Homepage lead selection, ordered sections and visibility, logo/branding settings, and bilingual footer editing.
+- Server-backed admin login and logout, automatic refresh through HttpOnly cookies, CSRF protection, account revocation, module permissions, and owner-managed custom roles.
+- Skeleton loading, retry/error states and server-confirmed saving. Public APIs never return drafts. Public readers do not need accounts.
+- Language preference and saved article IDs remain browser-local; bookmarks load the corresponding published stories from the API.
+
+The initial publication has its real structural categories and branding but **no sample stories, videos, resources, or prices**. Empty sections show honest empty states until the editorial team publishes content. Previous browser-local demo content/accounts are not imported into the server.
+
+## Deferred features
+
+Live market data and Friday Dispatch subscriptions display **“Under development, coming soon.”** The interface does not accept subscription emails or show fabricated market prices. Newsletter sending, invitation emails, video transcoding and public reader accounts are not part of this release.
+
+## Contact / EmailJS
+
+`/contact` contains the contact workflow. Fill these frontend variables to enable EmailJS:
+
+```dotenv
+VITE_EMAILJS_SERVICE_ID=
+VITE_EMAILJS_TEMPLATE_ID=
+VITE_EMAILJS_PUBLIC_KEY=
+```
+
+The EmailJS template should accept `from_name`, `from_email`, `reply_to`, and `message`. Configure the intended recipient and allowed website origins in EmailJS. These are public frontend integration IDs; do not put private provider credentials in Vite variables. Without them, the page shows the publication’s direct email address instead of pretending to send messages. No EmailJS account or keys were supplied with the brief, so sending is not configured yet.
+
+## Frontend configuration
+
+Copy `.env.example` to `.env` when you need overrides:
+
+- `VITE_API_BASE_URL`: blank uses the same-origin `/api` route. Set the full HTTPS API URL for a separately hosted backend.
+- `VITE_BASE_PATH`: `/` for a purchased domain. `/aqua-info-BD/` preserves the current GitHub Pages project path.
+
+The existing GitHub Pages workflow sets its project base path and reads API/EmailJS IDs from repository **variables**. No deployment has been triggered by this implementation. A statically hosted frontend still needs a running, reachable Django backend; it will show a connection error if no API is configured.
+
+For a root-domain deployment, serve `index.html` as the SPA history fallback. Prefer a same-origin or same-site API so authentication does not depend on third-party cookies. The backend README includes a starting Nginx configuration.
+
+## Source structure
 
 ```text
 src/
-  app/                    Route definitions, shared state, navigation behavior
-  components/
-    layout/               Public and admin shells, shared brand
-    ui/                   Accessible dialogs, reveal animations, splash, empty states
-  features/
-    public/               Home sections, archives, article reader, search, worksheets
-    admin/                Overview, story editor, homepage and content management
-  data/                   Typed entities, demo fixtures, browser storage adapter
-  lib/                    Localization, dates, URL slugs, downloads
-  styles/                 Design tokens, shared styles, public and admin styling
-public/assets/            Local logo, photos, and typefaces
-tests/                    Browser workflow and responsive checks
+  app/                    App routes and API-backed publication context
+  components/layout/      Public/admin shells, brand, header and footer
+  components/ui/          Media input, loading/error states, dialogs and animations
+  data/                   Types, structural defaults, resource mutation adapter
+  features/public/        Public reading, videos, guides, search, contact
+  features/admin/         Content/configuration editors and team access
+  lib/                    API client, renewable sessions, query hooks, utilities
+  styles/                 Responsive publication, admin and integration styling
 ```
 
-## What is implemented
+English uses local Public Sans / Source Serif 4; Bangla uses local Kalpurush. Animations respect reduced-motion preferences. See [ASSETS.md](ASSETS.md) for the supplied branding and retained design photography.
 
-The public homepage preserves the supplied navy/teal editorial direction and section sequence: lead story and field dossier, latest news, visual reports, knowledge tools, blue economy, and the Friday Dispatch. Separate routes cover categories, archives, article reading, saved stories, search, videos, resources, market prices, and publication information.
-
-The admin follows the same sequence. It includes article creation, editing, deletion, drafts and local publishing; English/Bangla content editing; homepage section ordering and visibility; lead-story selection; video/resource collection management; sample price editing; category management; and publication settings.
-
-The responsive publication now uses a wider canvas, larger type, asymmetric video and knowledge spreads, a new masthead/footer, and a paper-index admin sidebar. Cards reveal on scroll, supported by a reading-progress line and reduced-motion alternatives.
-
-English uses locally hosted Public Sans and Source Serif 4. Bengali uses locally hosted Kalpurush, including inside the story editor. Animations respect `prefers-reduced-motion`. The short branded splash appears once per browser tab session. Dialogs support keyboard focus trapping, Escape, and focus restoration.
-
-## Local admin access
-
-The admin now opens with a dedicated login screen. Use the **Fill demo details** button or sign in with:
-
-- Email: `admin@aquainfobd.com`
-- Demo password: `AquaDemo@2026`
-
-From **Team & access**, the owner can create local accounts, choose Editor / Contributor / Viewer presets, customize module permissions, change demo passwords, and revoke or restore access. An account creation dialog provides copyable demo sign-in details. Sign out and use the new account in the same browser to review its access. Account credentials use salted digests in local storage; the current sign-in session lives in session storage.
-
-This is a **frontend simulation**, not production authentication. Accounts and content are local to the browser, invitations are not emailed, and permissions are not server-enforced. Use sample passwords. The owner demo credentials are intentionally public. Backend authentication is required before using this with real accounts or private information.
-
-## UI phase and persistence
-
-There is **no backend**. The admin login and permission screens demonstrate the intended access flow; they are not a secured administration service. Content changes are stored under `aqua-info-bd:site:v1` in this browser’s `localStorage`; public and admin views share that state, including across tabs. Saved stories and language preferences are local too. Clearing browser storage resets the demo content. A failed storage write shows a notification instead of claiming permanent success.
-
-Prices and stories are demonstration content. Video cards open a preview, without pretending to play connected footage. Newsletter forms demonstrate validation and confirmation without sending or registering an email. The pond-volume and FCR worksheets calculate from entered measurements; the observation checklist downloads a text file.
-
-The supplied design’s remote images returned HTTP 403, so representative locally downloaded fishing photographs are used. See [ASSETS.md](ASSETS.md). All shipped assets load locally without a font CDN or remote image dependency.
-
-For a backend phase, retain the entity types in `src/data/types.ts`, replace the browser storage adapter/provider with API-backed queries and mutations, and connect server-enforced authentication/authorization, media hosting, email delivery, and verified editorial content.
-
-## Validation
+## Checks and API handoff
 
 ```sh
 npm run typecheck
 npm run build
-npm test
 npm run format:check
 ```
 
-Browser tests use Playwright with installed Google Chrome (`channel: 'chrome'`). They start a temporary Vite server on port 4173 and cover local publishing, draft visibility, cross-tab changes, homepage controls, market edits, categories, resource calculations, dialogs, language persistence, and layouts at 320px, 390px, and 768px. Desktop and mobile screenshots are generated in the ignored `test-results/` directory.
+The backend includes focused permission/authentication/upload checks, migrations, an OpenAPI export, and:
 
-```sh
-npm run preview
+```text
+docs/Aqua Info BD.postman_collection.json
+docs/Aqua Info BD.local.postman_environment.json
 ```
 
-Serves the production build after `npm run build`.
+Import both files into Postman, enter credentials privately, run CSRF first and then Login. Neither file contains passwords or session tokens. The backend README documents all API routes, supported filters, and configuration fields.
+
+You can also download them from the Swagger page, or directly while Django is running:
+
+- [Postman collection JSON](http://127.0.0.1:8000/api/postman/collection.json)
+- [Postman environment JSON](http://127.0.0.1:8000/api/postman/environment.json)
+- [OpenAPI JSON](http://127.0.0.1:8000/api/schema.json)
+
+Login and refresh return user details in JSON; the JWTs are sent in HttpOnly cookies named `aqua_access` and `aqua_refresh`. Inspect the response cookies in Postman and leave its cookie jar enabled. No manual Bearer token is needed for the collection. The collection includes CRUD, settings, team, roles and upload templates; run individual requests after editing their values and choosing files.

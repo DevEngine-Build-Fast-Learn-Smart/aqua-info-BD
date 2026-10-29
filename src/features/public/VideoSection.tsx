@@ -1,15 +1,23 @@
 import { useState } from 'react';
-import { MapPin, Play, Video as VideoIcon } from 'lucide-react';
+import { MapPin, Play } from 'lucide-react';
 import { useSite } from '../../app/SiteProvider';
 import { Modal } from '../../components/ui/Modal';
 import { SectionHeading } from './SectionHeading';
 import type { Video } from '../../data/types';
+import { MediaPlayer } from './MediaPlayer';
+import { useRemoteList } from '../../lib/useRemoteList';
+import { Pagination } from '../../components/ui/Pagination';
+import { LoadingSkeleton, RequestError } from '../../components/ui/DataState';
 import { assetUrl } from '../../lib/utils';
 
 export function VideoSection({ standalone = false }: { standalone?: boolean }) {
   const { data, t } = useSite();
   const [active, setActive] = useState<Video | null>(null);
-  const videos = data.videos.filter((video) => video.status === 'published');
+  const [page, setPage] = useState(1);
+  const result = useRemoteList<Video>('/videos/', { page }, standalone);
+  const videos = standalone
+    ? result.results
+    : data.videos.filter((video) => video.status === 'published');
   return (
     <section className={`video-section section-space ${standalone ? 'standalone-section' : ''}`}>
       <div className="container">
@@ -23,7 +31,9 @@ export function VideoSection({ standalone = false }: { standalone?: boolean }) {
           to={standalone ? undefined : '/videos'}
           action={t('View all videos', 'সব ভিডিও')}
         />
-        <div className="video-grid">
+        {standalone && result.loading && <LoadingSkeleton />}
+        {standalone && result.error && <RequestError message={result.error} retry={result.retry} />}
+        <div className="video-grid" hidden={standalone && result.loading}>
           {videos.map((video, index) => (
             <article className={`video-card ${index === 0 ? 'video-featured' : ''}`} key={video.id}>
               <button
@@ -51,41 +61,35 @@ export function VideoSection({ standalone = false }: { standalone?: boolean }) {
                 </h3>
                 <p>{video.description}</p>
                 <button className="text-link" onClick={() => setActive(video)}>
-                  {t('Preview field report', 'প্রতিবেদন প্রিভিউ')}
+                  {t('Watch field report', 'প্রতিবেদন দেখুন')}
                   <ArrowIcon />
                 </button>
               </div>
             </article>
           ))}
         </div>
-        {!videos.length && (
+        {(!standalone || (!result.loading && !result.error)) && !videos.length && (
           <p className="muted">
             {t('Field reports are being prepared.', 'মাঠ প্রতিবেদন প্রস্তুত হচ্ছে।')}
           </p>
         )}
+        {standalone && <Pagination page={page} count={result.count} onChange={setPage} />}
         {active && (
           <Modal
-            title={t('Field report preview', 'মাঠ প্রতিবেদন প্রিভিউ')}
+            title={t('Visual field report', 'ভিডিও প্রতিবেদন')}
             onClose={() => setActive(null)}
             wide
           >
-            <div className="video-preview">
-              <img src={assetUrl(active.image)} alt={active.location} />
-              <span>
-                <VideoIcon size={32} />
-              </span>
-            </div>
+            <MediaPlayer
+              source={active.mediaUrl || ''}
+              poster={assetUrl(active.image)}
+              title={t(active.title, active.titleBn)}
+            />
             <span className="eyebrow">
               {active.location} · {active.duration}
             </span>
             <h3 className="modal-story-title">{t(active.title, active.titleBn)}</h3>
-            <p>{active.description}</p>
-            <div className="info-note">
-              {t(
-                'This is a video interface preview. Documentary footage will be connected when the content is ready.',
-                'এটি ভিডিও ইন্টারফেসের প্রিভিউ। বিষয়বস্তু প্রস্তুত হলে ডকুমেন্টারি ফুটেজ যুক্ত করা হবে।',
-              )}
-            </div>
+            <p className="video-story-body">{t(active.description, active.descriptionBn)}</p>
           </Modal>
         )}
       </div>

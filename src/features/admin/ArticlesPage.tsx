@@ -5,26 +5,35 @@ import { useSite } from '../../app/SiteProvider';
 import { AdminPageHeader } from './AdminPageHeader';
 import { assetUrl, formatDate } from '../../lib/utils';
 import { Modal } from '../../components/ui/Modal';
+import { useRemoteList } from '../../lib/useRemoteList';
+import { api } from '../../lib/api';
+import type { Article } from '../../data/types';
+import { Pagination } from '../../components/ui/Pagination';
+import { LoadingSkeleton, RequestError } from '../../components/ui/DataState';
 export default function ArticlesPage() {
-  const { data, update, notify } = useSite();
+  const { data, refresh, notify } = useSite();
   const [params, setParams] = useSearchParams();
   const status = params.get('status') || 'all';
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [removeId, setRemoveId] = useState<string | null>(null);
-  const articles = data.articles.filter(
-    (a) =>
-      (status === 'all' || a.status === status) &&
-      (category === 'all' || a.category === category) &&
-      `${a.title} ${a.titleBn} ${a.author}`.toLowerCase().includes(query.toLowerCase()),
-  );
-  function remove() {
-    update((previous) => ({
-      ...previous,
-      articles: previous.articles.filter((a) => a.id !== removeId),
-    }));
-    setRemoveId(null);
-    notify('Story removed from this browser’s content library.');
+  const [page, setPage] = useState(1);
+  const result = useRemoteList<Article>('/admin/articles/', {
+    search: query,
+    category: category === 'all' ? undefined : category,
+    status: status === 'all' ? undefined : status,
+    page,
+  });
+  const articles = result.results;
+  async function remove() {
+    try {
+      await api(`/admin/articles/${removeId}/`, { method: 'DELETE' });
+      setRemoveId(null);
+      notify('Story removed.');
+      await refresh();
+    } catch (reason) {
+      notify(reason instanceof Error ? reason.message : 'The story could not be removed.');
+    }
   }
   return (
     <>
@@ -44,11 +53,18 @@ export default function ArticlesPage() {
             <button
               key={value}
               className={status === value ? 'active' : ''}
-              onClick={() => setParams(value === 'all' ? {} : { status: value })}
+              onClick={() => {
+                setPage(1);
+                setParams(value === 'all' ? {} : { status: value });
+              }}
             >
               {value === 'all' ? 'All stories' : value === 'draft' ? 'Drafts' : 'Published'}
               <span>
-                {data.articles.filter((a) => value === 'all' || a.status === value).length}
+                {value === 'all'
+                  ? data.counts?.articles || 0
+                  : value === 'published'
+                    ? data.counts?.published || 0
+                    : data.counts?.drafts || 0}
               </span>
             </button>
           ))}
@@ -60,13 +76,19 @@ export default function ArticlesPage() {
               placeholder="Search by title or author…"
               aria-label="Search stories"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setPage(1);
+                setQuery(event.target.value);
+              }}
             />
           </label>
           <select
             aria-label="Filter category"
             value={category}
-            onChange={(event) => setCategory(event.target.value)}
+            onChange={(event) => {
+              setPage(1);
+              setCategory(event.target.value);
+            }}
           >
             <option value="all">All editorial categories</option>
             {data.categories.map((c) => (
@@ -75,9 +97,11 @@ export default function ArticlesPage() {
               </option>
             ))}
           </select>
-          <span>{articles.length} stories</span>
+          <span>{result.count} stories</span>
         </div>
-        <div className="table-scroll">
+        {result.error && <RequestError message={result.error} retry={result.retry} />}
+        {result.loading && <LoadingSkeleton />}
+        <div className="table-scroll" hidden={result.loading || !!result.error}>
           <table className="data-table editorial-table stories-table">
             <thead>
               <tr>
@@ -93,7 +117,7 @@ export default function ArticlesPage() {
                 <tr key={article.id}>
                   <td>
                     <Link className="story-table-title" to={`/admin/articles/${article.id}`}>
-                      <img src={assetUrl(article.image)} alt="" />
+                      <img src={assetUrl(article.image || '/assets/logo.png')} alt="" />
                       <span>
                         <strong>{article.title}</strong>
                         <small>{article.author}</small>
@@ -128,19 +152,20 @@ export default function ArticlesPage() {
             </tbody>
           </table>
         </div>
-        {!articles.length && (
+        {!result.loading && !result.error && !articles.length && (
           <div className="admin-empty">
             <FileText size={30} />
             <h3>No stories in this view.</h3>
             <p>Change your filters or start a new story.</p>
           </div>
         )}
+        <Pagination page={page} count={result.count} onChange={setPage} />
       </section>
       {removeId && (
         <Modal title="Remove this story?" onClose={() => setRemoveId(null)}>
           <p>
-            This removes “{data.articles.find((a) => a.id === removeId)?.title}” from your local
-            content library and the public preview.
+            This removes “{articles.find((a) => a.id === removeId)?.title}” from the publication and
+            public website.
           </p>
           <div className="modal-actions">
             <button className="button button-outline" onClick={() => setRemoveId(null)}>

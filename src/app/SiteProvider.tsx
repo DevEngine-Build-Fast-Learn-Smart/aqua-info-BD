@@ -7,24 +7,39 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { readSiteData, STORAGE_KEY, writeSiteData } from '../data/storage';
 import type { Language, SiteData } from '../data/types';
+import { emptySiteData } from '../data/initial';
+import { persistSiteChanges } from '../data/api-storage';
+import { api } from '../lib/api';
 import { assetUrl, localized } from '../lib/utils';
 
 interface SiteContextValue {
   data: SiteData;
-  update: (change: (previous: SiteData) => SiteData) => boolean;
+  update: (change: (previous: SiteData) => SiteData) => Promise<boolean>;
+  refresh: () => Promise<void>;
+  loading: boolean;
+  loadError: string;
+  saving: boolean;
+  revision: number;
   language: Language;
   setLanguage: (value: Language) => void;
   t: (en: string, bn?: string) => string;
   notify: (message: string) => void;
   saved: string[];
   toggleSaved: (id: string) => void;
+  remember: (collection: 'articles' | 'videos' | 'resources', item: { id: string }) => void;
 }
 const SiteContext = createContext<SiteContextValue | null>(null);
 export function SiteProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState(readSiteData);
+  const [data, setData] = useState<SiteData>(() => structuredClone(emptySiteData));
   const dataRef = useRef(data);
+  const privateRef = useRef(false);
+  const requestVersion = useRef(0);
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [revision, setRevision] = useState(0);
   const [language, setLanguage] = useState<Language>(() => {
     try {
       return localStorage.getItem('aqua:language') === 'bn' ? 'bn' : 'en';
@@ -35,7 +50,13 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   const [saved, setSaved] = useState<string[]>(() => {
     try {
       const value = JSON.parse(localStorage.getItem('aqua:saved') || '[]');
-      return Array.isArray(value) ? value.filter((v) => typeof v === 'string') : [];
+      return Array.isArray(value)
+        ? value.filter(
+            (item) =>
+              typeof item === 'string' &&
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item),
+          )
+        : [];
     } catch {
       return [];
     }
@@ -43,37 +64,107 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState('');
   const t = useCallback((en: string, bn?: string) => localized(language, en, bn), [language]);
   const notify = useCallback((message: string) => setToast(message), []);
-  const update = useCallback((change: (previous: SiteData) => SiteData) => {
-    const next = change(dataRef.current);
+  const load = useCallback(async (visible: boolean) => {
+    const version = ++requestVersion.current;
+    if (visible) setLoading(true);
+    setLoadError('');
     try {
-      writeSiteData(next);
-    } catch {
-      setToast('This change could not be saved. Browser storage may be full or unavailable.');
-      return false;
+      const next = await api<SiteData>(privateRef.current ? '/workspace/' : '/site/');
+      if (version !== requestVersion.current) return;
+      dataRef.current = next;
+      setData(next);
+    } catch (reason) {
+      if (version === requestVersion.current)
+        setLoadError(
+          reason instanceof Error ? reason.message : 'The publication could not be loaded.',
+        );
+      throw reason;
+    } finally {
+      if (version === requestVersion.current) setLoading(false);
     }
-    dataRef.current = next;
-    setData(next);
-    return true;
   }, []);
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(''), 4500);
-      return () => clearTimeout(timer);
+  const refresh = useCallback(async () => {
+    try {
+      await load(true);
+      setRevision((value) => value + 1);
+    } catch {
+      /* Boundary provides retry. */
     }
+  }, [load]);
+  useEffect(() => {
+    void refresh();
+    const auth = (event: Event) => {
+      privateRef.current = !!(event as CustomEvent<boolean>).detail;
+      if (!privateRef.current) {
+        dataRef.current = structuredClone(emptySiteData);
+        setData(dataRef.current);
+      }
+      void refresh();
+    };
+    window.addEventListener('aqua:auth-changed', auth);
+    return () => window.removeEventListener('aqua:auth-changed', auth);
+  }, [refresh]);
+  const update = useCallback(
+    (change: (previous: SiteData) => SiteData): Promise<boolean> => {
+      const operation = queue.current.then(async () => {
+        setSaving(true);
+        try {
+          const next = await persistSiteChanges(dataRef.current, change(dataRef.current));
+          dataRef.current = next;
+          setData(next);
+          setRevision((value) => value + 1);
+          try {
+            await load(false);
+          } catch {
+            setLoadError('');
+            notify('Saved successfully. Refresh the page to load the latest server content.');
+          }
+          return true;
+        } catch (reason) {
+          notify(reason instanceof Error ? reason.message : 'The change could not be saved.');
+          return false;
+        } finally {
+          setSaving(false);
+        }
+      });
+      queue.current = operation;
+      return operation;
+    },
+    [load, notify],
+  );
+  const remember = useCallback(
+    (collection: 'articles' | 'videos' | 'resources', item: { id: string }) => {
+      const current = dataRef.current;
+      const list = current[collection] as { id: string }[];
+      const next = {
+        ...current,
+        [collection]: list.some((value) => value.id === item.id)
+          ? list.map((value) => (value.id === item.id ? item : value))
+          : [...list, item],
+      } as SiteData;
+      dataRef.current = next;
+      setData(next);
+    },
+    [],
+  );
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(''), 6000);
+    return () => clearTimeout(timer);
   }, [toast]);
   useEffect(() => {
     document.documentElement.lang = language;
     try {
       localStorage.setItem('aqua:language', language);
     } catch {
-      /* Optional preference. */
+      /* Preference is optional. */
     }
   }, [language]);
   useEffect(() => {
     try {
       localStorage.setItem('aqua:saved', JSON.stringify(saved));
     } catch {
-      /* Session bookmarks still work. */
+      /* Bookmarks remain in this session. */
     }
   }, [saved]);
   useEffect(() => {
@@ -83,22 +174,17 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       favicon.removeAttribute('type');
     }
   }, [data.settings.logoUrl]);
-  useEffect(() => {
-    const sync = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEY) {
-        const next = readSiteData();
-        dataRef.current = next;
-        setData(next);
-      }
-    };
-    window.addEventListener('storage', sync);
-    return () => window.removeEventListener('storage', sync);
-  }, []);
   return (
     <SiteContext.Provider
       value={{
         data,
         update,
+        refresh,
+        loading,
+        loadError,
+        saving,
+        revision,
+        remember,
         language,
         setLanguage,
         t,

@@ -15,21 +15,21 @@ export default function OverviewPage() {
   const metrics = [
     {
       label: 'PUBLISHED STORIES',
-      value: published.length,
+      value: data.counts?.published ?? published.length,
       icon: FileText,
       note: 'Perspectives out in the world',
       to: '/admin/articles?status=published',
     },
     {
       label: 'ON THE EDITING DESK',
-      value: drafts.length,
+      value: data.counts?.drafts ?? drafts.length,
       icon: BookOpen,
       note: 'Drafts ready for your attention',
       to: '/admin/articles?status=draft',
     },
     {
       label: 'VISUAL FIELD REPORTS',
-      value: data.videos.filter((v) => v.status === 'published').length,
+      value: data.counts?.videos ?? data.videos.filter((v) => v.status === 'published').length,
       icon: Video,
       note: 'Stories with a different lens',
       to: '/admin/videos',
@@ -127,12 +127,12 @@ export default function OverviewPage() {
             one good story at a time.
           </h2>
           <p>
-            Your public site and editorial desk share one content library. Every local edit helps
+            Your public site and editorial desk share one content library. Every saved edit helps
             you see the full picture.
           </p>
           <div>
             <span className="status-dot" />
-            UI phase · Browser storage
+            Connected publication · Server storage
           </div>
           <Link to="/home" target="_blank" rel="noreferrer">
             Explore the public view

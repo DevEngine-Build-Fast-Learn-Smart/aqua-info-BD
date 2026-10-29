@@ -1,11 +1,26 @@
+import { useState } from 'react';
+import { useRemoteList } from '../../lib/useRemoteList';
+import type { Article } from '../../data/types';
 import { ArrowDown, ArrowUp, ArrowUpRight, GripVertical } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSite } from '../../app/SiteProvider';
 import { AdminPageHeader } from './AdminPageHeader';
 export default function HomepagePage() {
-  const { data, update, notify } = useSite();
-  function move(index: number, direction: number) {
-    update((previous) => {
+  const { data, update, notify, saving } = useSite();
+  const [query, setQuery] = useState('');
+  const choices = useRemoteList<Article>('/articles/', { search: query, page_size: 100 });
+  const publishedChoices = [
+    ...new Map(
+      [
+        ...data.articles.filter(
+          (article) => article.status === 'published' && article.id === data.settings.leadArticleId,
+        ),
+        ...choices.results,
+      ].map((article) => [article.id, article]),
+    ).values(),
+  ];
+  async function move(index: number, direction: number) {
+    const saved = await update((previous) => {
       const sections = [...previous.sections];
       [sections[index], sections[index + direction]] = [
         sections[index + direction],
@@ -13,7 +28,7 @@ export default function HomepagePage() {
       ];
       return { ...previous, sections };
     });
-    notify('Homepage order updated in the public preview.');
+    if (saved) notify('Homepage order updated.');
   }
   const destinations: Record<string, string> = {
     lead: '/admin/articles',
@@ -61,7 +76,7 @@ export default function HomepagePage() {
                 <div className="section-order-controls">
                   <button
                     className="icon-button"
-                    disabled={index === 0}
+                    disabled={saving || index === 0}
                     onClick={() => move(index, -1)}
                     aria-label={`Move ${section.name} up`}
                   >
@@ -69,27 +84,29 @@ export default function HomepagePage() {
                   </button>
                   <button
                     className="icon-button"
-                    disabled={index === data.sections.length - 1}
+                    disabled={saving || index === data.sections.length - 1}
                     onClick={() => move(index, 1)}
                     aria-label={`Move ${section.name} down`}
                   >
                     <ArrowDown size={15} />
                   </button>
                   <button
+                    disabled={saving}
                     role="switch"
                     aria-checked={section.enabled}
                     aria-label={`Show ${section.name}`}
                     className={`switch ${section.enabled ? 'switch-on' : ''}`}
-                    onClick={() => {
-                      update((previous) => ({
+                    onClick={async () => {
+                      const saved = await update((previous) => ({
                         ...previous,
                         sections: previous.sections.map((s) =>
                           s.id === section.id ? { ...s, enabled: !s.enabled } : s,
                         ),
                       }));
-                      notify(
-                        `${section.name} ${section.enabled ? 'hidden from' : 'shown on'} the homepage.`,
-                      );
+                      if (saved)
+                        notify(
+                          `${section.name} ${section.enabled ? 'hidden from' : 'shown on'} the homepage.`,
+                        );
                     }}
                   >
                     <span />
@@ -115,27 +132,34 @@ export default function HomepagePage() {
             <span className="eyebrow">THE LEAD STORY</span>
             <h3>Give the most important story the first word.</h3>
             <label className="field">
+              <span>FIND A PUBLISHED STORY</span>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search story titles…"
+              />
+            </label>
+            {choices.error && <p className="form-error">{choices.error}</p>}
+            <label className="field">
               <span>FEATURED ARTICLE</span>
               <select
+                disabled={saving}
                 value={data.settings.leadArticleId}
-                onChange={(e) => {
-                  update((previous) => ({
+                onChange={async (e) => {
+                  const leadId = e.currentTarget.value;
+                  const saved = await update((previous) => ({
                     ...previous,
-                    settings: { ...previous.settings, leadArticleId: e.target.value },
+                    settings: { ...previous.settings, leadArticleId: leadId },
                   }));
-                  notify('Homepage lead story updated.');
+                  if (saved) notify('Homepage lead story updated.');
                 }}
               >
-                {!data.articles.some((a) => a.status === 'published') && (
-                  <option value="">No published stories</option>
-                )}
-                {data.articles
-                  .filter((a) => a.status === 'published')
-                  .map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.title}
-                    </option>
-                  ))}
+                {!publishedChoices.length && <option value="">No published stories</option>}
+                {publishedChoices.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.title}
+                  </option>
+                ))}
               </select>
             </label>
             <p className="muted caption">

@@ -21,15 +21,17 @@ import {
   rolePermissions,
   type TeamMember,
   type TeamRole,
+  type RoleDefinition,
 } from './access';
 import { useSite } from '../../../app/SiteProvider';
-import { today } from '../../../lib/utils';
+import { slugify, today } from '../../../lib/utils';
 
-type MemberForm = Omit<TeamMember, 'salt' | 'passwordHash'>;
+type MemberForm = TeamMember;
 export default function TeamPage() {
-  const { members, saveMember, setMemberStatus } = useAccess();
+  const { members, roles, saveMember, setMemberStatus, saveRole } = useAccess();
   const { notify } = useSite();
   const [editing, setEditing] = useState<MemberForm | null>(null);
+  const [roleEditing, setRoleEditing] = useState<RoleDefinition | null>(null);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -76,7 +78,7 @@ export default function TeamPage() {
       setEditing(null);
       setPassword('');
       setCopied(false);
-      notify('Local team access saved. No invitation email has been sent.');
+      notify('Team account saved. No invitation email has been sent.');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Team access could not be saved.');
     } finally {
@@ -87,21 +89,21 @@ export default function TeamPage() {
     if (!credentials) return;
     try {
       await navigator.clipboard.writeText(
-        `Aqua Info BD — Local demo access\nSign in: ${window.location.origin}/admin/login\nEmail: ${credentials.email}\nDemo password: ${credentials.password}\nThis account works only in the browser where it was created.`,
+        `Aqua Info BD — Editorial access\nSign in: ${window.location.origin}/admin/login\nEmail: ${credentials.email}\nPassword: ${credentials.password}\nKeep your sign-in details private.`,
       );
       setCopied(true);
     } catch {
       notify('Clipboard is unavailable. Select the sign-in details below to copy them.');
     }
   }
-  function changeStatus(member: TeamMember, status: TeamMember['status']) {
+  async function changeStatus(member: TeamMember, status: TeamMember['status']) {
     try {
-      setMemberStatus(member.id, status);
+      await setMemberStatus(member.id, status);
       setRevoke(null);
       notify(
         status === 'active'
-          ? 'Local access restored.'
-          : 'Local access revoked. This account can no longer sign in.',
+          ? 'Access restored.'
+          : 'Access revoked. This account can no longer sign in.',
       );
     } catch (reason) {
       notify(reason instanceof Error ? reason.message : 'Access could not be updated.');
@@ -115,6 +117,16 @@ export default function TeamPage() {
         title="A shared desk. The right access."
         description="Bring your team into the workflow and give everyone a clear place to contribute."
       >
+        <button
+          className="button button-outline"
+          onClick={() => {
+            setError('');
+            setRoleEditing({ id: '', name: '', description: '', permissions: [] });
+          }}
+        >
+          <Plus size={16} />
+          Create a role
+        </button>
         <button className="button button-primary" onClick={() => open()}>
           <Plus size={18} />
           Give someone access
@@ -129,7 +141,7 @@ export default function TeamPage() {
         <div>
           <UserRoundCheck size={23} />
           <strong>{members.filter((member) => member.status === 'active').length}</strong>
-          <span>active local accounts</span>
+          <span>active accounts</span>
         </div>
         <div>
           <ShieldCheck size={23} />
@@ -230,9 +242,9 @@ export default function TeamPage() {
           </table>
         </div>
         <div className="panel-footnote">
-          This is a frontend access demo. Accounts are stored in this browser; no invitations are
-          emailed and access does not transfer to other browsers or devices. Backend authentication
-          will make this workflow permanent.
+          Accounts and permissions are stored on the server and work across devices. Only the
+          superadmin can create roles and manage team access. Share initial passwords privately;
+          invitation emails are not sent.
         </div>
       </section>
       <div className="team-role-guide">
@@ -252,6 +264,132 @@ export default function TeamPage() {
           </article>
         ))}
       </div>
+      {roles.some((role) => !role.system) && (
+        <section className="admin-panel role-library">
+          <div className="panel-heading">
+            <h2>Custom editorial roles</h2>
+          </div>
+          {roles
+            .filter((role) => !role.system)
+            .map((role) => (
+              <div className="custom-role-row" key={role.id}>
+                <div>
+                  <strong>{role.name}</strong>
+                  <p>{role.description}</p>
+                  <small>{role.permissions.length} module permissions</small>
+                </div>
+                <button
+                  className="text-link"
+                  onClick={() => {
+                    setRoleEditing({ ...role, permissions: [...role.permissions] });
+                    setError('');
+                  }}
+                >
+                  Edit role
+                  <Pencil size={15} />
+                </button>
+              </div>
+            ))}
+        </section>
+      )}
+      {roleEditing && (
+        <Modal title="Editorial role" onClose={() => !busy && setRoleEditing(null)} wide>
+          <form
+            onSubmit={async (event) => {
+              event.preventDefault();
+              setBusy(true);
+              setError('');
+              try {
+                await saveRole(roleEditing);
+                setRoleEditing(null);
+                notify('Editorial role saved.');
+              } catch (reason) {
+                setError(reason instanceof Error ? reason.message : 'The role could not be saved.');
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <label className="field">
+              <span>ROLE NAME</span>
+              <input
+                required
+                maxLength={80}
+                value={roleEditing.name}
+                onChange={(event) =>
+                  setRoleEditing({
+                    ...roleEditing,
+                    name: event.target.value,
+                    id: roles.some((role) => role.id === roleEditing.id)
+                      ? roleEditing.id
+                      : slugify(event.target.value),
+                  })
+                }
+              />
+            </label>
+            <label className="field">
+              <span>DESCRIPTION</span>
+              <textarea
+                maxLength={240}
+                rows={3}
+                value={roleEditing.description}
+                onChange={(event) =>
+                  setRoleEditing({ ...roleEditing, description: event.target.value })
+                }
+              />
+            </label>
+            <div className="permission-heading">
+              <h3>Role permissions</h3>
+            </div>
+            <div className="permission-grid">
+              {modules
+                .filter((module) => module.id !== 'team')
+                .map((module) => (
+                  <label
+                    className={`permission-option ${roleEditing.permissions.includes(module.id) ? 'permission-selected' : ''}`}
+                    key={module.id}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={roleEditing.permissions.includes(module.id)}
+                      onChange={() =>
+                        setRoleEditing({
+                          ...roleEditing,
+                          permissions: roleEditing.permissions.includes(module.id)
+                            ? roleEditing.permissions.filter((value) => value !== module.id)
+                            : [...roleEditing.permissions, module.id],
+                        })
+                      }
+                    />
+                    <span>
+                      <strong>{module.name}</strong>
+                      <small>{module.description}</small>
+                    </span>
+                    <Check size={16} />
+                  </label>
+                ))}
+            </div>
+            {error && (
+              <p className="form-error" role="alert">
+                {error}
+              </p>
+            )}
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="button button-outline"
+                disabled={busy}
+                onClick={() => setRoleEditing(null)}
+              >
+                Cancel
+              </button>
+              <button className="button button-primary" type="submit" disabled={busy}>
+                {busy ? 'Saving…' : 'Save role'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
       {editing && (
         <Modal
           title={isNew ? 'A new place at the desk.' : `Access for ${editing.name}`}
@@ -293,27 +431,34 @@ export default function TeamPage() {
                     setEditing({ ...editing, role, permissions: [...rolePermissions[role]] });
                   }}
                 >
-                  <option value="editor">Editor</option>
-                  <option value="contributor">Contributor</option>
-                  <option value="viewer">Viewer</option>
+                  {roles
+                    .filter((role) => role.id !== 'owner')
+                    .map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
                 </select>
-                <small>{roleDescriptions[editing.role]}</small>
+                <small>
+                  {roles.find((role) => role.id === editing.role)?.description ||
+                    roleDescriptions[editing.role]}
+                </small>
               </label>
               <label className="field">
-                <span>{isNew ? 'DEMO PASSWORD *' : 'NEW DEMO PASSWORD (OPTIONAL)'}</span>
+                <span>{isNew ? 'PASSWORD *' : 'NEW PASSWORD (OPTIONAL)'}</span>
                 <input
                   required={!!isNew}
                   type="text"
                   autoComplete="off"
-                  minLength={8}
+                  minLength={10}
                   maxLength={100}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder={
-                    isNew ? 'At least 8 characters' : 'Leave blank to keep current password'
+                    isNew ? 'At least 10 characters' : 'Leave blank to keep current password'
                   }
                 />
-                <small>Use a sample password, not a personal password.</small>
+                <small>Use a unique password. The server stores only its secure hash.</small>
               </label>
             </div>
             <div className="permission-heading">
@@ -363,7 +508,7 @@ export default function TeamPage() {
                 Cancel
               </button>
               <button className="button button-primary" disabled={busy} type="submit">
-                {busy ? 'Saving…' : isNew ? 'Create local access' : 'Save permissions'}
+                {busy ? 'Saving…' : isNew ? 'Create account' : 'Save permissions'}
                 <ArrowRight size={16} />
               </button>
             </div>
@@ -374,10 +519,7 @@ export default function TeamPage() {
         <Modal title={`A place for ${credentials.name}.`} onClose={() => setCredentials(null)}>
           <div className="credentials-success">
             <CheckCheck size={29} />
-            <p>
-              The local account is ready. Keep these demo sign-in details before closing this
-              window.
-            </p>
+            <p>The account is ready. Keep these sign-in details before closing this window.</p>
           </div>
           <dl className="credential-details">
             <div>
@@ -389,13 +531,13 @@ export default function TeamPage() {
               <dd>{credentials.email}</dd>
             </div>
             <div>
-              <dt>DEMO PASSWORD</dt>
+              <dt>PASSWORD</dt>
               <dd>{credentials.password}</dd>
             </div>
           </dl>
           <p className="caption">
-            Sign out, then use this account to review its permissions in this browser. No email
-            invitation has been sent.
+            Sign out, then use this account to review its permissions. No email invitation has been
+            sent.
           </p>
           <div className="modal-actions">
             <button className="button button-outline" onClick={() => setCredentials(null)}>
@@ -403,7 +545,7 @@ export default function TeamPage() {
             </button>
             <button className="button button-primary" onClick={copyCredentials}>
               {copied ? <Check size={17} /> : <Copy size={17} />}
-              {copied ? 'Copied' : 'Copy demo sign-in details'}
+              {copied ? 'Copied' : 'Copy sign-in details'}
             </button>
           </div>
         </Modal>
@@ -411,8 +553,8 @@ export default function TeamPage() {
       {revoke && (
         <Modal title={`Revoke access for ${revoke.name}?`} onClose={() => setRevoke(null)}>
           <p>
-            They will no longer be able to sign in to this local workspace. You can restore access
-            at any time.
+            They will no longer be able to sign in to this workspace. You can restore access at any
+            time.
           </p>
           <div className="modal-actions">
             <button className="button button-outline" onClick={() => setRevoke(null)}>

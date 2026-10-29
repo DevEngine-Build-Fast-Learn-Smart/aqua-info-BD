@@ -1,14 +1,34 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, Check, Image, Save } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Save } from 'lucide-react';
 import { useSite } from '../../app/SiteProvider';
 import { AdminPageHeader } from './AdminPageHeader';
-import { assetUrl, slugify, today } from '../../lib/utils';
+import { slugify, today } from '../../lib/utils';
 import type { Article } from '../../data/types';
-import { EmptyState } from '../../components/ui/EmptyState';
+import { useRemoteRecord } from '../../lib/useRemoteRecord';
+import { LoadingSkeleton, RequestError } from '../../components/ui/DataState';
+import { MediaInput } from '../../components/ui/MediaInput';
 export default function ArticleEditorPage() {
   const { id } = useParams();
-  const { data, update, notify } = useSite();
+  return id && id !== 'new' ? <ExistingArticleEditor id={id} /> : <ArticleEditor />;
+}
+function ExistingArticleEditor({ id }: { id: string }) {
+  const { record, loading, error, retry } = useRemoteRecord<Article>(
+    `/admin/articles/${encodeURIComponent(id)}/`,
+  );
+  const { data, remember } = useSite();
+  useEffect(() => {
+    if (record) remember('articles', record);
+  }, [record, remember]);
+  if (loading || (record && !data.articles.some((article) => article.id === id)))
+    return <LoadingSkeleton />;
+  if (error || !record)
+    return <RequestError message={error || 'This story is unavailable.'} retry={retry} />;
+  return <ArticleEditor key={id} />;
+}
+function ArticleEditor() {
+  const { id } = useParams();
+  const { data, update, notify, saving } = useSite();
   const navigate = useNavigate();
   const existing = data.articles.find((a) => a.id === id);
   const [form, setForm] = useState<Article>(() =>
@@ -26,7 +46,7 @@ export default function ArticleEditorPage() {
           category: data.categories[0]?.id || '',
           author: '',
           location: '',
-          image: '/assets/images/field-dispatch.jpg',
+          image: '',
           imageAlt: '',
           date: today(),
           readTime: 5,
@@ -34,26 +54,17 @@ export default function ArticleEditorPage() {
         },
   );
   const [tab, setTab] = useState('en');
-  if (id && id !== 'new' && !existing)
-    return (
-      <EmptyState
-        title="This story is unavailable."
-        description="Return to your library to select another story."
-        to="/admin/articles"
-        action="Back to stories"
-      />
-    );
   function field<K extends keyof Article>(key: K, value: Article[K]) {
     setForm((previous) => ({ ...previous, [key]: value }));
   }
-  function save(event: FormEvent) {
+  async function save(event: FormEvent) {
     event.preventDefault();
     if (!form.title.trim()) {
       setTab('en');
       notify('An English headline is required. Add the headline before saving.');
       return;
     }
-    const slug = slugify(form.slug || form.title);
+    const slug = slugify(form.slug || form.title).slice(0, 220);
     if (!slug) {
       notify('Please enter a valid title or URL slug.');
       return;
@@ -69,16 +80,15 @@ export default function ArticleEditorPage() {
       imageAlt: form.imageAlt || form.title,
       titleBn: form.titleBn.trim(),
     };
-    update((previous) => ({
+    const succeeded = await update((previous) => ({
       ...previous,
       articles: previous.articles.some((a) => a.id === article.id)
         ? previous.articles.map((a) => (a.id === article.id ? article : a))
         : [article, ...previous.articles],
     }));
+    if (!succeeded) return;
     notify(
-      article.status === 'published'
-        ? 'Story published to your local public preview.'
-        : 'Draft saved in this browser.',
+      article.status === 'published' ? 'Story published to your public website.' : 'Draft saved.',
     );
     navigate('/admin/articles');
   }
@@ -96,9 +106,9 @@ export default function ArticleEditorPage() {
           }
           description="Write with care. Add context. Make it worth the reader’s time."
         >
-          <button className="button button-primary" type="submit">
+          <button className="button button-primary" type="submit" disabled={saving}>
             <Save size={16} />
-            Save {form.status === 'published' ? '& publish locally' : 'draft'}
+            Save {form.status === 'published' ? '& publish' : 'draft'}
           </button>
         </AdminPageHeader>
         <div className="editor-layout">
@@ -195,7 +205,7 @@ export default function ArticleEditorPage() {
                   onChange={(e) => field('status', e.target.value as Article['status'])}
                 >
                   <option value="draft">Draft · Editing desk</option>
-                  <option value="published">Published · Public preview</option>
+                  <option value="published">Published · Public website</option>
                 </select>
               </label>
               <label className="field">
@@ -258,7 +268,9 @@ export default function ArticleEditorPage() {
                   onChange={(e) => field('slug', e.target.value)}
                   placeholder={slugify(form.title) || 'your-story-title'}
                 />
-                <small>/articles/{slugify(form.slug || form.title) || 'your-story-title'}</small>
+                <small>
+                  /articles/{slugify(form.slug || form.title).slice(0, 220) || 'your-story-title'}
+                </small>
               </label>
               {existing?.status === 'published' && (
                 <Link
@@ -273,26 +285,12 @@ export default function ArticleEditorPage() {
               )}
             </section>
             <section className="admin-panel panel-padding cover-picker">
-              <span className="eyebrow">
-                <Image size={14} />
-                COVER PHOTOGRAPH
-              </span>
-              <img src={assetUrl(form.image)} alt={form.imageAlt} />
-              <div className="cover-options">
-                {['field-dispatch', 'shrimp-farm', 'biofloc-research'].map((name) => (
-                  <button
-                    key={name}
-                    type="button"
-                    className={form.image.includes(name) ? 'selected' : ''}
-                    aria-label={`Select ${name} photograph`}
-                    aria-pressed={form.image.includes(name)}
-                    onClick={() => field('image', `/assets/images/${name}.jpg`)}
-                  >
-                    <img src={assetUrl(`/assets/images/${name}.jpg`)} alt="" />
-                    {form.image.includes(name) && <Check size={16} />}
-                  </button>
-                ))}
-              </div>
+              <MediaInput
+                value={form.image}
+                onChange={(value) => field('image', value)}
+                purpose="articles"
+                label="Cover photograph"
+              />
               <label className="field">
                 <span>IMAGE DESCRIPTION</span>
                 <input
@@ -303,7 +301,7 @@ export default function ArticleEditorPage() {
               </label>
             </section>
             <div className="info-note">
-              Changes are saved locally. Publishing here updates this browser’s public preview.
+              Drafts remain private. Publishing makes this story available on the public website.
             </div>
           </aside>
         </div>

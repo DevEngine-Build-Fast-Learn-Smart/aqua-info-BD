@@ -50,4 +50,3 @@ export const assetUrl = (url?: string): string => {
   const path = url.startsWith('/') ? url : `/${url}`;
   return `${base}${path}`;
 };
-

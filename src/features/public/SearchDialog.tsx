@@ -3,17 +3,15 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight, Search } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
 import { useSite } from '../../app/SiteProvider';
+import type { Article } from '../../data/types';
+import { useRemoteList } from '../../lib/useRemoteList';
+import { RequestError } from '../../components/ui/DataState';
 import { articleTitle } from '../../lib/utils';
 export function SearchDialog({ onClose }: { onClose: () => void }) {
   const { data, language, t } = useSite();
   const [query, setQuery] = useState('');
-  const results = data.articles.filter(
-    (a) =>
-      a.status === 'published' &&
-      `${a.title} ${a.titleBn} ${a.excerpt} ${a.category} ${a.author}`
-        .toLowerCase()
-        .includes(query.toLowerCase()),
-  );
+  const result = useRemoteList<Article>('/articles/', { search: query, page_size: 8 });
+  const results = result.results;
   return (
     <Modal title={t('Explore the journal', 'জার্নালে খুঁজুন')} onClose={onClose} wide>
       <label className="search-field">
@@ -31,11 +29,15 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
       </label>
       <p className="eyebrow search-label">
         {query
-          ? `${results.length} ${t('STORIES FOUND', 'টি প্রতিবেদন')}`
+          ? `${result.count} ${t('STORIES FOUND', 'টি প্রতিবেদন')}`
           : t('FROM THE EDITORIAL DESK', 'সম্পাদকীয় ডেস্ক থেকে')}
       </p>
       <div className="search-results">
-        {results.length ? (
+        {result.loading ? (
+          <p className="muted">{t('Searching…', 'খোঁজা হচ্ছে…')}</p>
+        ) : result.error ? (
+          <RequestError message={result.error} retry={result.retry} />
+        ) : results.length ? (
           results.map((article) => (
             <Link key={article.id} to={`/articles/${article.slug}`} onClick={onClose}>
               <div>
@@ -56,6 +58,12 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
           </p>
         )}
       </div>
+      {result.count > 8 && (
+        <Link className="text-link" to={`/news?q=${encodeURIComponent(query)}`} onClick={onClose}>
+          {t('View all matching stories', 'সব প্রতিবেদন দেখুন')}
+          <ArrowUpRight size={16} />
+        </Link>
+      )}
     </Modal>
   );
 }

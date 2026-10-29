@@ -25,7 +25,7 @@ export default function FooterPage() {
   );
   const [language, setLanguage] = useState<'en' | 'bn'>('en');
   const [tab, setTab] = useState('content');
-  function save(event: FormEvent) {
+  async function save(event: FormEvent) {
     event.preventDefault();
     if (!form.headline.trim()) {
       setTab('content');
@@ -58,7 +58,7 @@ export default function FooterPage() {
         })),
       })),
     };
-    if (update((previous) => ({ ...previous, settings: { ...previous.settings, footer } })))
+    if (await update((previous) => ({ ...previous, settings: { ...previous.settings, footer } })))
       notify('Website footer saved. The public footer is updated.');
   }
   function changeLink(columnId: string, linkId: string, change: Partial<FooterLink>) {

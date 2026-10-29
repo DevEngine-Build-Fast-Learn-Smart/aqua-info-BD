@@ -6,10 +6,20 @@ import { ArticleActions } from './ArticleActions';
 import { ArticleCard } from './ArticleCard';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { SectionHeading } from './SectionHeading';
+import { useRemoteRecord } from '../../lib/useRemoteRecord';
+import type { Article } from '../../data/types';
+import { LoadingSkeleton, RequestError } from '../../components/ui/DataState';
 export default function ArticlePage() {
   const { slug } = useParams();
   const { data, language, t } = useSite();
-  const article = data.articles.find((a) => a.slug === slug && a.status === 'published');
+  const {
+    record: article,
+    loading,
+    error,
+    retry,
+  } = useRemoteRecord<Article>(`/articles/${encodeURIComponent(slug || '')}/`);
+  if (loading) return <LoadingSkeleton />;
+  if (error) return <RequestError message={error} retry={retry} />;
   if (!article)
     return (
       <EmptyState
@@ -58,11 +68,8 @@ export default function ArticlePage() {
           <img src={assetUrl(article.image)} alt={article.imageAlt} />
           <figcaption>
             <MapPin size={13} />
-            {article.location} ·{' '}
-            {t(
-              'Illustrative photograph for the interface preview',
-              'ইন্টারফেস প্রিভিউর জন্য প্রতীকী ছবি',
-            )}
+            {article.location}
+            {article.imageAlt ? ` · ${article.imageAlt}` : ''}
           </figcaption>
         </figure>
         <div className="article-reading-layout">
@@ -84,12 +91,6 @@ export default function ArticlePage() {
               )}
             <div className="article-endmark">
               AQUA INFO BD <span>■</span>
-            </div>
-            <div className="info-note">
-              {t(
-                'Editorial preview · Sample content for reviewing this website’s design and reading experience.',
-                'সম্পাদকীয় প্রিভিউ · ওয়েবসাইটের ডিজাইন ও পাঠের অভিজ্ঞতা পর্যালোচনার জন্য নমুনা বিষয়বস্তু।',
-              )}
             </div>
           </div>
         </div>

@@ -17,6 +17,7 @@ import { useAccess } from '../../features/admin/access/AccessProvider';
 import { initials, type AdminModule } from '../../features/admin/access/access';
 import { useScrollReveal } from '../../lib/useScrollReveal';
 import { WebsiteLogo } from '../ui/WebsiteLogo';
+import { SiteDataBoundary } from '../ui/DataState';
 
 export const adminNavigation: { to: string; label: string; module?: AdminModule; end?: boolean }[] =
   [
@@ -148,7 +149,7 @@ export default function AdminLayout() {
           <div className="sidebar-bottom">
             <div className="sidebar-preview">
               <span className="status-dot" />
-              <span>LOCAL EDITION</span>
+              <span>EDITORIAL WORKSPACE</span>
               <p>
                 Thoughtfully put together.
                 <br />
@@ -163,7 +164,7 @@ export default function AdminLayout() {
               <span>{initials(currentUser?.name || 'Aqua Editorial')}</span>
               <div>
                 <strong>{currentUser?.name}</strong>
-                <small>{currentUser?.role} · local workspace</small>
+                <small>{currentUser?.role} · signed in</small>
               </div>
               <ShieldCheck size={18} />
             </div>
@@ -188,7 +189,7 @@ export default function AdminLayout() {
           <div>
             <span className="workspace-status">
               <i />
-              Local preview
+              Connected to server
             </span>
             <Link to="/home" className="preview-link" target="_blank" rel="noreferrer">
               View publication
@@ -204,7 +205,9 @@ export default function AdminLayout() {
           </div>
         </header>
         <main ref={mainRef} id="admin-content" className="admin-main" key={location.pathname}>
-          <Outlet />
+          <SiteDataBoundary>
+            <Outlet />
+          </SiteDataBoundary>
         </main>
         <footer className="admin-footer">
           <span>

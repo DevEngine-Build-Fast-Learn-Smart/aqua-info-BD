@@ -10,7 +10,7 @@ export default function CategoriesPage() {
   const [editing, setEditing] = useState<Category | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
-  function save(event: FormEvent) {
+  async function save(event: FormEvent) {
     event.preventDefault();
     if (!editing) return;
     const category = { ...editing, id: isNew ? slugify(editing.name) : editing.id };
@@ -34,20 +34,22 @@ export default function CategoriesPage() {
       notify('Choose a unique category name. This address is already in use.');
       return;
     }
-    update((previous) => ({
+    const succeeded = await update((previous) => ({
       ...previous,
       categories: isNew
         ? [...previous.categories, category]
         : previous.categories.map((c) => (c.id === category.id ? category : c)),
     }));
+    if (!succeeded) return;
     setEditing(null);
     notify('Editorial category saved. Public navigation is updated.');
   }
-  function remove() {
-    update((previous) => ({
+  async function remove() {
+    const succeeded = await update((previous) => ({
       ...previous,
       categories: previous.categories.filter((c) => c.id !== deleting),
     }));
+    if (!succeeded) return;
     setDeleting(null);
     notify('Unused category removed.');
   }
@@ -82,7 +84,9 @@ export default function CategoriesPage() {
             </thead>
             <tbody>
               {data.categories.map((category, index) => {
-                const count = data.articles.filter((a) => a.category === category.id).length;
+                const count =
+                  category.articleCount ??
+                  data.articles.filter((a) => a.category === category.id).length;
                 return (
                   <tr key={category.id}>
                     <td>

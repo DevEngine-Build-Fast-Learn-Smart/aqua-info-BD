@@ -1,19 +1,37 @@
 import { useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Search, SlidersHorizontal } from 'lucide-react';
 import { useSite } from '../../app/SiteProvider';
 import { ArticleCard } from './ArticleCard';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { MarketStrip } from './MarketStrip';
+import { useRemoteList } from '../../lib/useRemoteList';
+import { useSavedArticles } from '../../lib/useSavedArticles';
+import type { Article } from '../../data/types';
+import { Pagination } from '../../components/ui/Pagination';
+import { LoadingSkeleton, RequestError } from '../../components/ui/DataState';
 export default function ArchivePage({ savedOnly = false }: { savedOnly?: boolean }) {
   const { data, saved, t } = useSite();
   const location = useLocation();
   const category = data.categories.find((c) => `/${c.id}` === location.pathname);
-  const [query, setQuery] = useState('');
+  const [params] = useSearchParams();
+  const [query, setQuery] = useState(params.get('q') || '');
   const [sort, setSort] = useState('newest');
+  const [page, setPage] = useState(1);
+  const remote = useRemoteList<Article>(
+    '/articles/',
+    {
+      category: category?.id,
+      search: query,
+      ordering: sort === 'newest' ? '-date' : 'title',
+      page,
+    },
+    !savedOnly,
+  );
+  const reading = useSavedArticles(saved, savedOnly);
   const articles = useMemo(
     () =>
-      data.articles
+      reading.articles
         .filter(
           (a) =>
             a.status === 'published' &&
@@ -26,8 +44,12 @@ export default function ArchivePage({ savedOnly = false }: { savedOnly?: boolean
         .sort((a, b) =>
           sort === 'newest' ? b.date.localeCompare(a.date) : a.title.localeCompare(b.title),
         ),
-    [data.articles, category, query, saved, savedOnly, sort],
+    [reading.articles, category, query, saved, savedOnly, sort],
   );
+  const visibleArticles = savedOnly ? articles.slice((page - 1) * 24, page * 24) : remote.results;
+  const count = savedOnly ? articles.length : remote.count;
+  const loading = savedOnly ? reading.loading : remote.loading;
+  const error = savedOnly ? reading.error : remote.error;
   return (
     <>
       <MarketStrip />
@@ -68,24 +90,37 @@ export default function ArchivePage({ savedOnly = false }: { savedOnly?: boolean
               aria-label="Filter stories"
               placeholder={t('Find a story in this collection…', 'এই সংগ্রহে খুঁজুন…')}
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setPage(1);
+                setQuery(event.target.value);
+              }}
             />
           </label>
           <label className="sort-control">
             <SlidersHorizontal size={16} />
             <span className="sr-only">Sort stories</span>
-            <select value={sort} onChange={(event) => setSort(event.target.value)}>
+            <select
+              value={sort}
+              onChange={(event) => {
+                setPage(1);
+                setSort(event.target.value);
+              }}
+            >
               <option value="newest">{t('Newest first', 'নতুন আগে')}</option>
               <option value="title">{t('By title', 'শিরোনাম অনুযায়ী')}</option>
             </select>
           </label>
           <span className="caption">
-            {articles.length} {t('stories', 'টি প্রতিবেদন')}
+            {count} {t('stories', 'টি প্রতিবেদন')}
           </span>
         </div>
-        {articles.length ? (
+        {loading ? (
+          <LoadingSkeleton />
+        ) : error ? (
+          <RequestError message={error} retry={savedOnly ? reading.retry : remote.retry} />
+        ) : visibleArticles.length ? (
           <div className="archive-grid">
-            {articles.map((article) => (
+            {visibleArticles.map((article) => (
               <ArticleCard key={article.id} article={article} />
             ))}
           </div>
@@ -103,6 +138,7 @@ export default function ArchivePage({ savedOnly = false }: { savedOnly?: boolean
             )}
           />
         )}
+        <Pagination page={page} count={count} onChange={setPage} />
       </div>
     </>
   );

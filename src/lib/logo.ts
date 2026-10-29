@@ -1,12 +1,3 @@
-export const MAX_LOGO_SIZE = 2 * 1024 * 1024;
-const supportedTypes = new Set([
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-  'image/svg+xml',
-  'image/gif',
-]);
-
 export function verifyLogo(source: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -28,25 +19,6 @@ export function verifyLogo(source: string): Promise<void> {
     };
     image.src = source;
   });
-}
-
-export async function readLogoFile(file: File): Promise<string> {
-  if (!supportedTypes.has(file.type))
-    throw new Error('Choose a PNG, JPG, WebP, SVG, or GIF image.');
-  if (file.size > MAX_LOGO_SIZE)
-    throw new Error('Choose a logo smaller than 2 MB for this browser preview.');
-  const source = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () =>
-      typeof reader.result === 'string'
-        ? resolve(reader.result)
-        : reject(new Error('The image could not be read.'));
-    reader.onerror = () =>
-      reject(new Error('The image could not be read. Please choose it again.'));
-    reader.readAsDataURL(file);
-  });
-  await verifyLogo(source);
-  return source;
 }
 
 export function normalizeLogoLink(value: string) {

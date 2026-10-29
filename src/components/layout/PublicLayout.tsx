@@ -3,6 +3,7 @@ import { PublicHeader } from './PublicHeader';
 import { PublicFooter } from './PublicFooter';
 import { ScrollProgress } from '../ui/ScrollProgress';
 import { useScrollReveal } from '../../lib/useScrollReveal';
+import { SiteDataBoundary } from '../ui/DataState';
 
 export function PublicLayout() {
   const { pathname } = useLocation();
@@ -15,7 +16,9 @@ export function PublicLayout() {
       <PublicHeader />
       <ScrollProgress />
       <main id="main-content" ref={mainRef}>
-        <Outlet />
+        <SiteDataBoundary>
+          <Outlet />
+        </SiteDataBoundary>
       </main>
       <PublicFooter />
     </>

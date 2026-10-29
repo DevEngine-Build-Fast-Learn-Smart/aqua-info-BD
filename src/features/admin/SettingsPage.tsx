@@ -3,9 +3,10 @@ import { ImagePlus, Link2, LoaderCircle, RotateCcw, Save, ShieldCheck, Upload } 
 import { useSite } from '../../app/SiteProvider';
 import { AdminPageHeader } from './AdminPageHeader';
 import { DEFAULT_LOGO, WebsiteLogo } from '../../components/ui/WebsiteLogo';
-import { normalizeLogoLink, readLogoFile, verifyLogo } from '../../lib/logo';
+import { normalizeLogoLink, verifyLogo } from '../../lib/logo';
+import { uploadMedia } from '../../lib/api';
 export default function SettingsPage() {
-  const { data, update, notify } = useSite();
+  const { data, update, notify, saving } = useSite();
   const [settings, setSettings] = useState(() => ({ ...data.settings }));
   const [logoLink, setLogoLink] = useState(() =>
     /^https?:\/\//i.test(data.settings.logoUrl || '') ? data.settings.logoUrl! : '',
@@ -20,7 +21,7 @@ export default function SettingsPage() {
     setLogoBusy(true);
     setLogoError('');
     try {
-      const logoUrl = await readLogoFile(file);
+      const { url: logoUrl } = await uploadMedia(file, 'image', 'settings');
       setSettings((previous) => ({ ...previous, logoUrl }));
       setLogoLink('');
     } catch (error) {
@@ -64,7 +65,7 @@ export default function SettingsPage() {
         setLogoBusy(false);
       }
     }
-    const saved = update((previous) => ({
+    const saved = await update((previous) => ({
       ...previous,
       settings: {
         ...previous.settings,
@@ -76,13 +77,11 @@ export default function SettingsPage() {
       },
     }));
     if (!saved) {
-      setLogoError(
-        'Settings could not be saved. Try a smaller logo or use an image link if browser storage is full.',
-      );
+      setLogoError('Settings could not be saved. Please check the connection and try again.');
       return;
     }
     setSettings((previous) => ({ ...previous, logoUrl }));
-    notify('Publication settings saved to this browser.');
+    notify('Publication settings saved.');
   }
   return (
     <form onSubmit={save}>
@@ -91,7 +90,7 @@ export default function SettingsPage() {
         title="The details behind the journal."
         description="Keep the publication’s identity clear, consistent, and considered."
       >
-        <button className="button button-primary" type="submit" disabled={logoBusy}>
+        <button className="button button-primary" type="submit" disabled={logoBusy || saving}>
           {logoBusy ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />}
           {logoBusy ? 'Preparing logo…' : 'Save settings'}
         </button>
@@ -122,18 +121,18 @@ export default function SettingsPage() {
                 accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
                 onChange={uploadLogo}
                 aria-label="Upload website logo"
-                disabled={logoBusy}
+                disabled={logoBusy || saving}
               />
               <button
                 className="button button-outline"
                 type="button"
                 onClick={() => uploadRef.current?.click()}
-                disabled={logoBusy}
+                disabled={logoBusy || saving}
               >
                 <Upload size={17} />
                 Upload a logo
               </button>
-              <span>PNG, JPG, WebP, SVG or GIF · up to 2 MB</span>
+              <span>PNG, JPG, WebP, safe SVG or GIF · up to 5 MB</span>
             </div>
             <label className="field">
               <span>OR USE A DIRECT IMAGE LINK</span>
@@ -148,13 +147,13 @@ export default function SettingsPage() {
                   }}
                   placeholder="https://example.com/your-logo.png"
                   aria-label="Website logo image link"
-                  disabled={logoBusy}
+                  disabled={logoBusy || saving}
                 />
                 <button
                   className="button button-outline"
                   type="button"
                   onClick={applyLogoLink}
-                  disabled={logoBusy || !logoLink.trim()}
+                  disabled={logoBusy || saving || !logoLink.trim()}
                 >
                   Use link
                 </button>
@@ -170,7 +169,7 @@ export default function SettingsPage() {
               <button
                 className="text-link"
                 type="button"
-                disabled={logoBusy}
+                disabled={logoBusy || saving}
                 onClick={() => {
                   setSettings((previous) => ({ ...previous, logoUrl: DEFAULT_LOGO }));
                   setLogoLink('');
@@ -228,11 +227,11 @@ export default function SettingsPage() {
             <dl className="workspace-details">
               <div>
                 <dt>Current phase</dt>
-                <dd>Frontend UI</dd>
+                <dd>Connected publication</dd>
               </div>
               <div>
                 <dt>Content storage</dt>
-                <dd>This browser</dd>
+                <dd>Server database</dd>
               </div>
               <div>
                 <dt>Public entry</dt>
@@ -248,9 +247,8 @@ export default function SettingsPage() {
               </div>
             </dl>
             <p className="caption muted">
-              Login, roles, and team permissions are local UI demonstrations. Backend
-              authentication, shared accounts, permanent storage, and email delivery belong to the
-              next phase.
+              Content, media, and editorial access are saved on the server. Team permissions are
+              enforced by the backend. Newsletter delivery and live market data are coming later.
             </p>
           </section>
         </aside>

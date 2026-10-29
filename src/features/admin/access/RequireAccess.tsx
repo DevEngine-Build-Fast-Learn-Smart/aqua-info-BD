@@ -3,10 +3,13 @@ import { ArrowLeft, LockKeyhole } from 'lucide-react';
 import { useAccess } from './AccessProvider';
 import type { AdminModule } from './access';
 import type { ReactNode } from 'react';
+import { LoadingSkeleton, RequestError } from '../../../components/ui/DataState';
 
 export function RequireAccess({ module, children }: { module?: AdminModule; children: ReactNode }) {
-  const { currentUser, can } = useAccess();
+  const { currentUser, can, loading, authError, retry } = useAccess();
   const location = useLocation();
+  if (loading) return <LoadingSkeleton />;
+  if (authError) return <RequestError message={authError} retry={retry} />;
   if (!currentUser)
     return (
       <Navigate to="/admin/login" replace state={{ from: location.pathname + location.search }} />

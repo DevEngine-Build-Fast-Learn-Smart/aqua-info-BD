@@ -8,7 +8,7 @@ export type AdminModule =
   | 'footer'
   | 'settings'
   | 'team';
-export type TeamRole = 'owner' | 'editor' | 'contributor' | 'viewer';
+export type TeamRole = string;
 export interface TeamMember {
   id: string;
   name: string;
@@ -17,24 +17,23 @@ export interface TeamMember {
   permissions: AdminModule[];
   status: 'active' | 'suspended';
   joined: string;
-  salt: string;
-  passwordHash: string;
 }
-
-export const ACCESS_KEY = 'aqua:editorial-access:v1';
-export const SESSION_KEY = 'aqua:editorial-session:v1';
-export const DEMO_EMAIL = 'admin@aquainfobd.com';
-export const DEMO_PASSWORD = 'AquaDemo@2026';
+export interface RoleDefinition {
+  id: string;
+  name: string;
+  description: string;
+  permissions: AdminModule[];
+  system?: boolean;
+}
 export const modules: { id: AdminModule; name: string; description: string }[] = [
   { id: 'homepage', name: 'Homepage', description: 'Arrange sections and select the lead story.' },
   {
     id: 'articles',
     name: 'Stories & field reports',
-    description: 'Write, edit, and publish local stories.',
+    description: 'Write, edit, and publish stories.',
   },
-  { id: 'videos', name: 'Video reports', description: 'Manage visual field-report previews.' },
-  { id: 'resources', name: 'Knowledge hub', description: 'Curate guides and worksheets.' },
-  { id: 'market', name: 'Market benchmark', description: 'Update the sample market prices.' },
+  { id: 'videos', name: 'Video reports', description: 'Publish video stories and manage footage.' },
+  { id: 'resources', name: 'Knowledge hub', description: 'Publish guides and manage documents.' },
   {
     id: 'categories',
     name: 'Editorial categories',
@@ -50,71 +49,20 @@ export const modules: { id: AdminModule; name: string; description: string }[] =
     name: 'Publication settings',
     description: 'Edit the brand and contact details.',
   },
-  { id: 'team', name: 'Team & access', description: 'Reserved for the workspace owner.' },
+  { id: 'team', name: 'Team & access', description: 'Reserved for the superadmin.' },
 ];
-export const rolePermissions: Record<TeamRole, AdminModule[]> = {
+export const rolePermissions: Record<string, AdminModule[]> = {
   owner: modules.map((module) => module.id),
-  editor: ['homepage', 'articles', 'videos', 'resources', 'market', 'categories', 'footer'],
+  editor: ['homepage', 'articles', 'videos', 'resources', 'categories', 'footer'],
   contributor: ['articles', 'videos', 'resources'],
   viewer: [],
 };
-export const roleDescriptions: Record<TeamRole, string> = {
+export const roleDescriptions: Record<string, string> = {
   owner: 'Full publication access and team management.',
   editor: 'Manage editorial content and the front page.',
   contributor: 'Work on stories, videos, and knowledge resources.',
   viewer: 'Read the workspace overview without editing access.',
 };
-const owner: TeamMember = {
-  id: 'workspace-owner',
-  name: 'Aqua Editorial',
-  email: DEMO_EMAIL,
-  role: 'owner',
-  permissions: rolePermissions.owner,
-  status: 'active',
-  joined: '2026-10-28',
-  salt: '',
-  passwordHash: '',
-};
-export function readMembers(): TeamMember[] {
-  try {
-    const saved: unknown = JSON.parse(localStorage.getItem(ACCESS_KEY) || 'null');
-    if (Array.isArray(saved)) {
-      const members = saved.filter(
-        (value): value is TeamMember =>
-          value &&
-          typeof value.id === 'string' &&
-          typeof value.name === 'string' &&
-          typeof value.email === 'string' &&
-          Object.hasOwn(rolePermissions, value.role) &&
-          Array.isArray(value.permissions) &&
-          ['active', 'suspended'].includes(value.status) &&
-          typeof value.salt === 'string' &&
-          typeof value.passwordHash === 'string',
-      );
-      return [
-        { ...owner },
-        ...members
-          .filter((member) => member.id !== owner.id)
-          .map((member) => ({
-            ...member,
-            role: member.role === 'owner' ? ('viewer' as const) : member.role,
-            permissions: member.permissions.filter(
-              (permission) =>
-                permission !== 'team' && modules.some((module) => module.id === permission),
-            ),
-          })),
-      ];
-    }
-  } catch {
-    /* A fresh local demo is available when browser data is missing. */
-  }
-  return [{ ...owner }];
-}
-export async function passwordDigest(password: string, salt: string) {
-  const bytes = new TextEncoder().encode(`${salt}:${password}`);
-  const digest = await crypto.subtle.digest('SHA-256', bytes);
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
 export function initials(name: string) {
   return name
     .trim()
