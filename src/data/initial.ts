@@ -11,7 +11,7 @@ export const emptySiteData: SiteData = {
   pages: [],
   sections: [],
   settings: {
-    siteTitle: 'Aqua Info BD',
+    siteTitle: 'Aqua Info',
     siteTitleBn: '',
     logoUrl: '/assets/logo.png',
     tagline: 'Beyond the Water',

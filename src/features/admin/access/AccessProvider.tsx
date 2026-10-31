@@ -53,7 +53,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
           setRoles([]);
         }
       } catch (reason) {
-        if (reason instanceof ApiError && reason.status === 401) {
+        if (reason instanceof ApiError && (reason.status === 401 || reason.status === 403)) {
           setCurrentUser(null);
           setMembers([]);
           if (visible) announce(false);
@@ -72,6 +72,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
     const ended = () => {
       setCurrentUser(null);
       setMembers([]);
+      setAuthError('');
       announce(false);
     };
     window.addEventListener('aqua:session-ended', ended);

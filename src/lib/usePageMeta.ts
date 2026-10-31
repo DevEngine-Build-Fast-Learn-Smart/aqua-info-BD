@@ -100,7 +100,7 @@ export function usePageMeta(
         dateModified: options.updatedAt || options.publishedAt || new Date().toISOString(),
         author: {
           '@type': 'Person',
-          name: options.authorName || 'Aqua Info BD Editorial Team',
+          name: options.authorName || 'Aqua Info Editorial Team',
         },
         publisher: {
           '@type': 'NewsMediaOrganization',

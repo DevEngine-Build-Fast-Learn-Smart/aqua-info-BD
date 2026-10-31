@@ -135,7 +135,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       value={{
         siteName: localized(
           language,
-          data.settings.siteTitle || 'Aqua Info BD',
+          data.settings.siteTitle || 'Aqua Info',
           data.settings.siteTitleBn,
         ),
         data,
