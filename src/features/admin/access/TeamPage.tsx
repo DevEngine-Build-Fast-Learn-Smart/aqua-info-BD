@@ -9,13 +9,15 @@ import {
   ShieldCheck,
   UserRoundCheck,
   UsersRound,
+  Trash2,
   X,
 } from 'lucide-react';
 import { AdminPageHeader } from '../AdminPageHeader';
+import { ConfirmDeleteDialog } from '../../../components/ui/ConfirmDeleteDialog';
+import { Avatar } from '../../../components/ui/Avatar';
 import { Modal } from '../../../components/ui/Modal';
 import { useAccess } from './AccessProvider';
 import {
-  initials,
   modules,
   roleDescriptions,
   rolePermissions,
@@ -28,8 +30,14 @@ import { slugify, today } from '../../../lib/utils';
 
 type MemberForm = TeamMember;
 export default function TeamPage() {
-  const { members, roles, saveMember, setMemberStatus, saveRole } = useAccess();
-  const { notify } = useSite();
+  const { members, roles, saveMember, setMemberStatus, saveRole, deleteMember, deleteRole } =
+    useAccess();
+  const { notify, siteName } = useSite();
+  const [removing, setRemoving] = useState<{
+    id: string;
+    name: string;
+    kind: 'member' | 'role';
+  } | null>(null);
   const [editing, setEditing] = useState<MemberForm | null>(null);
   const [roleEditing, setRoleEditing] = useState<RoleDefinition | null>(null);
   const [password, setPassword] = useState('');
@@ -89,7 +97,7 @@ export default function TeamPage() {
     if (!credentials) return;
     try {
       await navigator.clipboard.writeText(
-        `Aqua Info BD — Editorial access\nSign in: ${window.location.origin}/admin/login\nEmail: ${credentials.email}\nPassword: ${credentials.password}\nKeep your sign-in details private.`,
+        `${siteName} — Editorial access\nSign in: ${window.location.origin}/admin/login\nEmail: ${credentials.email}\nPassword: ${credentials.password}\nKeep your sign-in details private.`,
       );
       setCopied(true);
     } catch {
@@ -174,11 +182,7 @@ export default function TeamPage() {
                 <tr key={member.id}>
                   <td>
                     <div className="team-person">
-                      <span
-                        className={`member-avatar ${member.role === 'owner' ? 'owner-avatar' : ''}`}
-                      >
-                        {initials(member.name)}
-                      </span>
+                      <Avatar user={member} />
                       <div>
                         <strong>{member.name}</strong>
                         <small>{member.email}</small>
@@ -222,6 +226,15 @@ export default function TeamPage() {
                           onClick={() => open(member)}
                         >
                           <Pencil size={17} />
+                        </button>
+                        <button
+                          className="icon-button danger-text"
+                          aria-label={`Permanently delete ${member.name}`}
+                          onClick={() =>
+                            setRemoving({ id: member.id, name: member.name, kind: 'member' })
+                          }
+                        >
+                          <Trash2 size={17} />
                         </button>
                         <button
                           className={`text-link ${member.status === 'active' ? 'danger-text' : ''}`}
@@ -287,6 +300,13 @@ export default function TeamPage() {
                 >
                   Edit role
                   <Pencil size={15} />
+                </button>
+                <button
+                  className="icon-button danger-text"
+                  aria-label={`Permanently delete role ${role.name}`}
+                  onClick={() => setRemoving({ id: role.id, name: role.name, kind: 'role' })}
+                >
+                  <Trash2 size={17} />
                 </button>
               </div>
             ))}
@@ -549,6 +569,22 @@ export default function TeamPage() {
             </button>
           </div>
         </Modal>
+      )}
+      {removing && (
+        <ConfirmDeleteDialog
+          name={removing.name}
+          note={
+            removing.kind === 'member'
+              ? 'This account will lose access. Published content will be retained.'
+              : 'Assigned users must be moved to another role before this role can be deleted.'
+          }
+          onClose={() => setRemoving(null)}
+          onConfirm={async () => {
+            if (removing.kind === 'member') await deleteMember(removing.id);
+            else await deleteRole(removing.id);
+            notify('Permanently deleted.');
+          }}
+        />
       )}
       {revoke && (
         <Modal title={`Revoke access for ${revoke.name}?`} onClose={() => setRevoke(null)}>

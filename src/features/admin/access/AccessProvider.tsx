@@ -4,6 +4,9 @@ import { useSite } from '../../../app/SiteProvider';
 import type { AdminModule, RoleDefinition, TeamMember } from './access';
 
 interface AccessContext {
+  updateProfile: (profile: { name: string; avatarUrl: string }) => Promise<void>;
+  deleteMember: (id: string) => Promise<void>;
+  deleteRole: (id: string) => Promise<void>;
   members: TeamMember[];
   roles: RoleDefinition[];
   currentUser: TeamMember | null;
@@ -151,9 +154,25 @@ export function AccessProvider({ children }: { children: ReactNode }) {
     });
     await loadTeam();
   }
+  async function updateProfile(profile: { name: string; avatarUrl: string }) {
+    const user = await api<TeamMember>('/auth/profile/', { method: 'PATCH', body: profile });
+    setCurrentUser(user);
+    setMembers((previous) => previous.map((member) => (member.id === user.id ? user : member)));
+  }
+  async function deleteMember(id: string) {
+    await api('/admin/team/' + id + '/', { method: 'DELETE' });
+    setMembers((previous) => previous.filter((member) => member.id !== id));
+  }
+  async function deleteRole(id: string) {
+    await api('/admin/roles/' + id + '/', { method: 'DELETE' });
+    setRoles((previous) => previous.filter((role) => role.id !== id));
+  }
   return (
     <Context.Provider
       value={{
+        updateProfile,
+        deleteMember,
+        deleteRole,
         members,
         roles,
         currentUser,

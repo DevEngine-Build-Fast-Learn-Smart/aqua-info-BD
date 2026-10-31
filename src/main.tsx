@@ -9,6 +9,8 @@ import './styles/identity.css';
 import './styles/composition.css';
 import './styles/access.css';
 import './styles/api.css';
+import './styles/client-scope.css';
+import './styles/polish.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

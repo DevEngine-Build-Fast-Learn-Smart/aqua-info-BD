@@ -1,83 +1,88 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import {
-  ArrowRight,
-  ArrowUpRight,
-  BookOpen,
-  Bookmark,
-  ChevronDown,
-  Menu,
-  Search,
-  Waves,
-  X,
-} from 'lucide-react';
+import { ArrowUpRight, ChevronDown, Headphones, Menu, Search, X } from 'lucide-react';
 import { Brand } from './Brand';
 import { useSite } from '../../app/SiteProvider';
+import { contentSections, aboutLinks } from '../../data/catalog';
 import { SearchDialog } from '../../features/public/SearchDialog';
-
+import { WeatherWidget } from '../ui/WeatherWidget';
+import { HeaderTime } from '../ui/HeaderTime';
 export function PublicHeader() {
-  const { data, language, setLanguage, t } = useSite();
+  const { language, setLanguage, t, siteName } = useSite();
   const { pathname } = useLocation();
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
+  const [searchOpen, setSearchOpen] = useState(false),
+    [menuOpen, setMenuOpen] = useState(false);
+  const navigation = useRef<HTMLElement>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const close = () =>
+    navigation.current
+      ?.querySelectorAll('details[open]')
+      .forEach((element) => element.removeAttribute('open'));
+  const closeNavigation = () => {
+    close();
+    setMenuOpen(false);
+  };
   useEffect(() => {
     setMenuOpen(false);
-    setMoreOpen(false);
+    close();
   }, [pathname]);
   useEffect(() => {
-    const dismiss = (event: MouseEvent) => {
-      if (!moreRef.current?.contains(event.target as Node)) setMoreOpen(false);
-    };
     const escape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setMoreOpen(false);
+        const opened = navigation.current?.querySelector(
+          'details[open] summary',
+        ) as HTMLElement | null;
+        close();
+        if (window.matchMedia('(max-width: 1023px)').matches) menuButton.current?.focus();
+        else opened?.focus();
         setMenuOpen(false);
       }
     };
-    document.addEventListener('click', dismiss);
+    const outside = (event: MouseEvent) => {
+      if (
+        !navigation.current?.contains(event.target as Node) &&
+        !menuButton.current?.contains(event.target as Node)
+      ) {
+        close();
+        setMenuOpen(false);
+      }
+    };
     document.addEventListener('keydown', escape);
+    document.addEventListener('click', outside);
     return () => {
-      document.removeEventListener('click', dismiss);
       document.removeEventListener('keydown', escape);
+      document.removeEventListener('click', outside);
     };
   }, []);
-  const nav = [
-    { to: '/home', label: t('Home', 'হোম') },
-    { to: '/news', label: t('News', 'সংবাদ') },
-    ...data.categories
-      .slice(0, 3)
-      .map((category) => ({ to: `/${category.id}`, label: t(category.name, category.nameBn) })),
-    { to: '/knowledge-hub', label: t('Knowledge Hub', 'জ্ঞানভান্ডার') },
-    ...data.categories
-      .slice(3)
-      .map((category) => ({ to: `/${category.id}`, label: t(category.name, category.nameBn) })),
-  ];
+  useEffect(() => {
+    const shortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener('keydown', shortcut);
+    return () => document.removeEventListener('keydown', shortcut);
+  }, []);
   const date = new Intl.DateTimeFormat(language === 'bn' ? 'bn-BD' : 'en-GB', {
-    weekday: 'short',
     day: 'numeric',
     month: 'long',
+    year: 'numeric',
     timeZone: 'Asia/Dhaka',
   }).format(new Date());
   return (
     <>
-      <header className="public-header">
+      <header className="public-header client-header">
         <div className="utility-bar">
           <div className="container utility-inner">
             <span className="header-dateline">
               <span className="tiny-square" />
               {date}
               <i />
-              <span>{t('Bangladesh, in perspective', 'বাংলাদেশের জলজ জগতের দৃষ্টিভঙ্গি')}</span>
+              {t('Bangladesh & beyond', 'বাংলাদেশ ও বিশ্ব')}
             </span>
-            <div className="utility-right">
-              <span className="edition">
-                {t(
-                  'Independent by nature. Connected by water.',
-                  'স্বাধীন দৃষ্টিভঙ্গি। জলের সংযোগে।',
-                )}
-              </span>
+            <div className="utility-actions">
+              <HeaderTime />
               <div className="language-switch" aria-label="Language">
                 <button
                   aria-pressed={language === 'en'}
@@ -101,102 +106,113 @@ export function PublicHeader() {
         <div className="container masthead">
           <Brand />
           <Link className="journal-signature" to="/about">
-            <span className="eyebrow">THE AQUATIC JOURNAL</span>
+            <span className="eyebrow">AQUACULTURE · FISHERIES · KNOWLEDGE</span>
             <span>
-              {t('A wider view of', 'জলজ জগতের')}
+              {t('Knowledge for', 'জলজ জগতের')}
               <br />
-              <em>{t('our changing waters.', 'নতুন দৃষ্টিভঙ্গি।')}</em>
+              <em>{t('our changing waters.', 'নতুন জ্ঞান।')}</em>
             </span>
           </Link>
           <div className="masthead-tools">
+            <WeatherWidget />
             <button className="masthead-search" onClick={() => setSearchOpen(true)}>
               <Search size={21} />
               <span>
-                {t('Find a story, discover a perspective', 'গল্প খুঁজুন, নতুন দৃষ্টিভঙ্গি জানুন')}
+                {t('Search ', 'খুঁজুন: ')}
+                {siteName}
               </span>
-              <span className="search-shortcut">↗</span>
+              <kbd className="search-keyboard-shortcut">⌘ K</kbd>
             </button>
             <div className="masthead-actions">
-              <Link className="button button-primary subscribe-link" to="/subscription">
-                <BookOpen size={19} />
-                {t('The Friday Dispatch', 'শুক্রবারের বার্তা')}
-                <ArrowUpRight size={17} />
-              </Link>
-              <Link
-                className="icon-button saved-link"
-                to="/saved"
-                aria-label={t('Saved stories', 'সংরক্ষিত প্রতিবেদন')}
-              >
-                <Bookmark size={22} />
+              <Link className="button button-primary header-podcast" to="/podcast">
+                <Headphones size={19} />
+                {t('Listen & learn', 'শুনুন ও জানুন')}
+                <ArrowUpRight size={16} />
               </Link>
               <button
                 className="icon-button mobile-search"
+                aria-label="Search website"
                 onClick={() => setSearchOpen(true)}
-                aria-label="Search"
               >
-                <Search size={23} />
+                <Search size={22} />
               </button>
               <button
+                ref={menuButton}
                 className="icon-button mobile-menu"
-                onClick={() => setMenuOpen(!menuOpen)}
-                aria-expanded={menuOpen}
-                aria-controls="publication-navigation"
                 aria-label="Toggle navigation"
+                aria-expanded={menuOpen}
+                aria-controls="client-navigation"
+                onClick={() => setMenuOpen(!menuOpen)}
               >
-                {menuOpen ? <X size={24} /> : <Menu size={24} />}
+                {menuOpen ? <X /> : <Menu />}
               </button>
             </div>
           </div>
         </div>
-        <div
-          id="publication-navigation"
-          className={`navigation-wrap ${menuOpen ? 'menu-open' : ''}`}
+        <nav
+          ref={navigation}
+          id="client-navigation"
+          className={`client-navigation ${menuOpen ? 'is-open' : ''}`}
+          aria-label="Main navigation"
         >
-          <nav className="container main-navigation" aria-label="Main navigation">
-            <div className="nav-links">
-              {nav.map((item, index) => (
-                <NavLink key={item.to} to={item.to} onClick={() => setMenuOpen(false)}>
-                  <span className="nav-folio" aria-hidden="true">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  {item.label}
-                </NavLink>
-              ))}
-            </div>
-            <div className="more-nav" ref={moreRef}>
-              <button onClick={() => setMoreOpen(!moreOpen)} aria-expanded={moreOpen}>
-                <Waves size={17} />
-                {t('Explore', 'আরও জানুন')}
-                <ChevronDown size={15} />
-              </button>
-              {moreOpen && (
-                <div className="dropdown">
-                  <span className="eyebrow">{t('BEYOND THE FRONT PAGE', 'প্রথম পাতার বাইরে')}</span>
-                  <Link to="/videos" onClick={() => setMoreOpen(false)}>
-                    {t('Visual field reports', 'ভিডিও প্রতিবেদন')}
-                    <ArrowUpRight size={16} />
+          <div className="container client-nav-inner">
+            <NavLink to="/" end className="client-home" onClick={closeNavigation}>
+              {t('Home', 'হোম')}
+            </NavLink>
+            {contentSections.map((section) => (
+              <details
+                className={`client-menu ${pathname.startsWith('/' + section.id) ? 'current' : ''}`}
+                key={section.id}
+                onToggle={(event) => {
+                  if (event.currentTarget.open)
+                    navigation.current?.querySelectorAll('details').forEach((detail) => {
+                      if (detail !== event.currentTarget) detail.open = false;
+                    });
+                }}
+              >
+                <summary>
+                  {t(section.name, section.nameBn)}
+                  <ChevronDown size={13} />
+                </summary>
+                <div className="client-submenu">
+                  <Link className="client-menu-all" to={`/${section.id}`} onClick={closeNavigation}>
+                    {t('Explore ', 'সব দেখুন: ')}
+                    {t(section.name, section.nameBn)}
+                    <ArrowUpRight size={15} />
                   </Link>
-                  <Link to="/market" onClick={() => setMoreOpen(false)}>
-                    {t('Market benchmark', 'বাজারদর')}
-                    <ArrowUpRight size={16} />
-                  </Link>
-                  <Link to="/about" onClick={() => setMoreOpen(false)}>
-                    {t('About the journal', 'জার্নাল সম্পর্কে')}
-                    <ArrowUpRight size={16} />
-                  </Link>
-                  <Link to="/contact" onClick={() => setMoreOpen(false)}>
-                    {t('Contact the editorial desk', 'সম্পাদকীয় ডেস্কে যোগাযোগ')}
-                    <ArrowUpRight size={16} />
-                  </Link>
-                  <Link to="/admin/" onClick={() => setMoreOpen(false)}>
-                    {t('The editorial desk', 'সম্পাদকীয় ডেস্ক')}
-                    <ArrowRight size={16} />
-                  </Link>
+                  {section.topics.map((topic) => (
+                    <Link to={topic.path} key={topic.slug} onClick={closeNavigation}>
+                      {t(topic.name, topic.nameBn)}
+                    </Link>
+                  ))}
                 </div>
-              )}
-            </div>
-          </nav>
-        </div>
+              </details>
+            ))}
+            <details
+              className={`client-menu ${pathname.startsWith('/about') ? 'current' : ''}`}
+              onToggle={(event) => {
+                if (event.currentTarget.open)
+                  navigation.current?.querySelectorAll('details').forEach((detail) => {
+                    if (detail !== event.currentTarget) detail.open = false;
+                  });
+              }}
+            >
+              <summary>
+                {t('About Us', 'আমাদের সম্পর্কে')}
+                <ChevronDown size={13} />
+              </summary>
+              <div className="client-submenu">
+                {aboutLinks.map((item) => (
+                  <Link to={item.path} key={item.path} onClick={closeNavigation}>
+                    {item.path === '/about'
+                      ? t('About ', 'পরিচিতি: ') + siteName
+                      : t(item.name, item.nameBn)}
+                  </Link>
+                ))}
+              </div>
+            </details>
+          </div>
+        </nav>
       </header>
       {searchOpen && <SearchDialog onClose={() => setSearchOpen(false)} />}
     </>

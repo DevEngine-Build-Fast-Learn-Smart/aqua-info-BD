@@ -1,18 +1,20 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
-import { ImagePlus, Link2, LoaderCircle, RotateCcw, Save, ShieldCheck, Upload } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ImagePlus, Link2, LoaderCircle, RotateCcw, Save, ShieldCheck, Upload, CloudSun, Key, Eye, EyeOff, Server, Zap, Activity } from 'lucide-react';
 import { useSite } from '../../app/SiteProvider';
 import { AdminPageHeader } from './AdminPageHeader';
 import { DEFAULT_LOGO, WebsiteLogo } from '../../components/ui/WebsiteLogo';
 import { normalizeLogoLink, verifyLogo } from '../../lib/logo';
 import { uploadMedia } from '../../lib/api';
 export default function SettingsPage() {
-  const { data, update, notify, saving } = useSite();
+  const { data, update, notify, saving, siteName } = useSite();
   const [settings, setSettings] = useState(() => ({ ...data.settings }));
   const [logoLink, setLogoLink] = useState(() =>
     /^https?:\/\//i.test(data.settings.logoUrl || '') ? data.settings.logoUrl! : '',
   );
   const [logoBusy, setLogoBusy] = useState(false);
   const [logoError, setLogoError] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
   async function uploadLogo(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -69,11 +71,20 @@ export default function SettingsPage() {
       ...previous,
       settings: {
         ...previous.settings,
+        siteTitle: (settings.siteTitle || '').trim(),
+        siteTitleBn: (settings.siteTitleBn || '').trim(),
         tagline: settings.tagline,
         taglineBn: settings.taglineBn,
         email: settings.email,
         description: settings.description,
         logoUrl,
+        weatherEnabled: settings.weatherEnabled !== false,
+        weatherDefaultCity: (settings.weatherDefaultCity || 'Dhaka').trim(),
+        weatherDefaultCityBn: (settings.weatherDefaultCityBn || 'ঢাকা').trim(),
+        weatherUseDefaultApi: settings.weatherUseDefaultApi !== false,
+        weatherApiProvider: settings.weatherApiProvider || 'open-meteo',
+        weatherApiKey: (settings.weatherApiKey || '').trim(),
+        weatherApiEndpoint: (settings.weatherApiEndpoint || '').trim(),
       },
     }));
     if (!saved) {
@@ -87,7 +98,7 @@ export default function SettingsPage() {
     <form onSubmit={save}>
       <AdminPageHeader
         eyebrow="07 / PUBLICATION SETTINGS"
-        title="The details behind the journal."
+        title="Website name & identity"
         description="Keep the publication’s identity clear, consistent, and considered."
       >
         <button className="button button-primary" type="submit" disabled={logoBusy || saving}>
@@ -101,9 +112,34 @@ export default function SettingsPage() {
           <div className="settings-brand">
             <WebsiteLogo src={settings.logoUrl || DEFAULT_LOGO} alt="Website logo preview" />
             <div>
-              <h2>Aqua Info BD</h2>
+              <h2>{settings.siteTitle || siteName}</h2>
               <span>Your publication’s visual identity</span>
             </div>
+          </div>
+          <div className="form-grid website-title-fields">
+            <label className="field">
+              <span>Website title · English</span>
+              <input
+                required
+                maxLength={160}
+                value={settings.siteTitle || ''}
+                onChange={(event) => setSettings({ ...settings, siteTitle: event.target.value })}
+                placeholder="Your website name"
+              />
+              <small className="caption">
+                Updates the brand name, browser titles, header, footer and admin workspace.
+              </small>
+            </label>
+            <label className="field">
+              <span>Website title · বাংলা</span>
+              <input
+                maxLength={200}
+                value={settings.siteTitleBn || ''}
+                onChange={(event) => setSettings({ ...settings, siteTitleBn: event.target.value })}
+                placeholder="ওয়েবসাইটের নাম"
+              />
+              <small className="caption">Optional. Used when Bangla is selected.</small>
+            </label>
           </div>
           <section className="logo-settings" aria-labelledby="logo-settings-title">
             <div className="logo-settings-heading">
@@ -219,6 +255,185 @@ export default function SettingsPage() {
               onChange={(e) => setSettings({ ...settings, description: e.target.value })}
             />
           </label>
+          <div className="settings-weather-card">
+            <div className="settings-weather-header">
+              <div className="settings-weather-title">
+                <CloudSun size={20} className="settings-weather-icon" />
+                <div>
+                  <h4>Live Header Weather</h4>
+                  <p className="caption">
+                    Shows localized weather in the public website header based on visitor location, with fallback to default city.
+                  </p>
+                </div>
+              </div>
+              <label className="switch-toggle" aria-label="Toggle live header weather">
+                <input
+                  type="checkbox"
+                  checked={settings.weatherEnabled !== false}
+                  onChange={(e) =>
+                    setSettings({ ...settings, weatherEnabled: e.target.checked })
+                  }
+                />
+                <span className="slider" />
+              </label>
+            </div>
+            {settings.weatherEnabled !== false && (
+              <>
+                <div className="form-grid" style={{ marginTop: '16px' }}>
+                  <label className="field">
+                    <span>DEFAULT CITY (ENGLISH)</span>
+                    <input
+                      value={settings.weatherDefaultCity ?? 'Dhaka'}
+                      placeholder="Dhaka"
+                      onChange={(e) =>
+                        setSettings({ ...settings, weatherDefaultCity: e.target.value })
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>DEFAULT CITY (BANGLA)</span>
+                    <input
+                      lang="bn"
+                      value={settings.weatherDefaultCityBn ?? 'ঢাকা'}
+                      placeholder="ঢাকা"
+                      onChange={(e) =>
+                        setSettings({ ...settings, weatherDefaultCityBn: e.target.value })
+                      }
+                    />
+                  </label>
+                </div>
+
+                <div className="weather-api-config-box">
+                  <div className="weather-api-config-header">
+                    <div className="weather-api-header-info">
+                      <div className="weather-api-header-title">
+                        <Zap size={16} className="text-teal" />
+                        <strong>Weather API Service Provider</strong>
+                      </div>
+                      <p className="caption">
+                        {settings.weatherUseDefaultApi !== false
+                          ? 'Using built-in free meteorological service (Open-Meteo). No subscription or API key required.'
+                          : 'Connect a commercial or custom weather telemetry provider for specialized forecasting.'}
+                      </p>
+                    </div>
+
+                    <div className="weather-api-toggle-group">
+                      <span className="weather-toggle-label">
+                        {settings.weatherUseDefaultApi !== false ? 'Default (Free)' : 'Custom API'}
+                      </span>
+                      <label className="switch-toggle" aria-label="Toggle default weather API">
+                        <input
+                          type="checkbox"
+                          checked={settings.weatherUseDefaultApi !== false}
+                          onChange={(e) =>
+                            setSettings({
+                              ...settings,
+                              weatherUseDefaultApi: e.target.checked,
+                            })
+                          }
+                        />
+                        <span className="slider" />
+                      </label>
+                    </div>
+                  </div>
+
+                  {settings.weatherUseDefaultApi !== false ? (
+                    <div className="weather-default-status">
+                      <span className="status-badge active">
+                        <span className="badge-dot" /> Default Provider Active · Open-Meteo
+                      </span>
+                      <p className="caption">
+                        Includes high-resolution temperature, hourly forecast, humidity, wind, and
+                        atmospheric pressure across Bangladesh and worldwide at zero cost.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="weather-custom-fields">
+                      <label className="field">
+                        <span>SELECT WEATHER PROVIDER</span>
+                        <select
+                          value={settings.weatherApiProvider || 'openweathermap'}
+                          onChange={(e) =>
+                            setSettings({
+                              ...settings,
+                              weatherApiProvider: e.target.value,
+                            })
+                          }
+                        >
+                          <option value="openweathermap">OpenWeatherMap (API 2.5 / 3.0)</option>
+                          <option value="weatherapi">WeatherAPI.com (Realtime & Forecast)</option>
+                          <option value="custom">Custom REST Endpoint URL</option>
+                        </select>
+                      </label>
+
+                      <label className="field">
+                        <span>API KEY / TOKEN</span>
+                        <div className="api-key-input-wrap">
+                          <Key size={15} className="api-key-prefix-icon" />
+                          <input
+                            type={showApiKey ? 'text' : 'password'}
+                            value={settings.weatherApiKey || ''}
+                            placeholder="Paste your weather provider API key here"
+                            onChange={(e) =>
+                              setSettings({
+                                ...settings,
+                                weatherApiKey: e.target.value,
+                              })
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="api-key-toggle-btn"
+                            onClick={() => setShowApiKey(!showApiKey)}
+                            aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+                            title={showApiKey ? 'Hide API key' : 'Show API key'}
+                          >
+                            {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
+                          </button>
+                        </div>
+                        <small className="caption">
+                          Your key is safely stored and processed securely by the server.
+                        </small>
+                      </label>
+
+                      {settings.weatherApiProvider === 'custom' && (
+                        <label className="field">
+                          <span>CUSTOM ENDPOINT URL TEMPLATE</span>
+                          <div className="api-key-input-wrap">
+                            <Server size={15} className="api-key-prefix-icon" />
+                            <input
+                              type="url"
+                              value={settings.weatherApiEndpoint || ''}
+                              placeholder="https://api.yourservice.com/weather?lat={lat}&lon={lon}&key={key}"
+                              onChange={(e) =>
+                                setSettings({
+                                  ...settings,
+                                  weatherApiEndpoint: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                          <small className="caption">
+                            Supports <code>&#123;lat&#125;</code>, <code>&#123;lon&#125;</code>, and{' '}
+                            <code>&#123;key&#125;</code> template placeholders.
+                          </small>
+                        </label>
+                      )}
+
+                      <div className="weather-fallback-note">
+                        <span className="caption">
+                          💡 <strong>Zero-downtime safety:</strong> If your custom API quota is
+                          exceeded or the provider is temporarily unavailable, Aqua Info BD will
+                          automatically fallback to the default provider so visitors always see live
+                          weather.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </section>
         <aside>
           <section className="admin-panel panel-padding">
@@ -250,6 +465,19 @@ export default function SettingsPage() {
               Content, media, and editorial access are saved on the server. Team permissions are
               enforced by the backend. Newsletter delivery and live market data are coming later.
             </p>
+          </section>
+
+          <section className="admin-panel panel-padding" style={{ marginTop: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <Activity size={20} className="text-teal" />
+              <h4 style={{ margin: 0, fontSize: '15px' }}>Health & Danger Zone</h4>
+            </div>
+            <p className="caption muted" style={{ marginBottom: '0.85rem' }}>
+              Real-time database latency, media storage tracking, server diagnostics, and the Super Admin database reset tool.
+            </p>
+            <Link to="/admin/system" className="button button-outline" style={{ width: '100%', justifyContent: 'center' }}>
+              Website Health & Usages →
+            </Link>
           </section>
         </aside>
       </div>

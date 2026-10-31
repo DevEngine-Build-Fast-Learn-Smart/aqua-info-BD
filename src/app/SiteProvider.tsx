@@ -12,8 +12,8 @@ import { emptySiteData } from '../data/initial';
 import { persistSiteChanges } from '../data/api-storage';
 import { api } from '../lib/api';
 import { assetUrl, localized } from '../lib/utils';
-
 interface SiteContextValue {
+  siteName: string;
   data: SiteData;
   update: (change: (previous: SiteData) => SiteData) => Promise<boolean>;
   refresh: () => Promise<void>;
@@ -25,21 +25,19 @@ interface SiteContextValue {
   setLanguage: (value: Language) => void;
   t: (en: string, bn?: string) => string;
   notify: (message: string) => void;
-  saved: string[];
-  toggleSaved: (id: string) => void;
-  remember: (collection: 'articles' | 'videos' | 'resources', item: { id: string }) => void;
 }
-const SiteContext = createContext<SiteContextValue | null>(null);
+const Context = createContext<SiteContextValue | null>(null);
 export function SiteProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<SiteData>(() => structuredClone(emptySiteData));
-  const dataRef = useRef(data);
-  const privateRef = useRef(false);
-  const requestVersion = useRef(0);
-  const queue = useRef<Promise<unknown>>(Promise.resolve());
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [revision, setRevision] = useState(0);
+  const dataRef = useRef(data),
+    privateRef = useRef(false),
+    requestVersion = useRef(0),
+    queue = useRef<Promise<unknown>>(Promise.resolve());
+  const [loading, setLoading] = useState(true),
+    [loadError, setLoadError] = useState(''),
+    [saving, setSaving] = useState(false),
+    [revision, setRevision] = useState(0),
+    [toast, setToast] = useState('');
   const [language, setLanguage] = useState<Language>(() => {
     try {
       return localStorage.getItem('aqua:language') === 'bn' ? 'bn' : 'en';
@@ -47,24 +45,12 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       return 'en';
     }
   });
-  const [saved, setSaved] = useState<string[]>(() => {
-    try {
-      const value = JSON.parse(localStorage.getItem('aqua:saved') || '[]');
-      return Array.isArray(value)
-        ? value.filter(
-            (item) =>
-              typeof item === 'string' &&
-              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item),
-          )
-        : [];
-    } catch {
-      return [];
-    }
-  });
-  const [toast, setToast] = useState('');
-  const t = useCallback((en: string, bn?: string) => localized(language, en, bn), [language]);
+  const translate = useCallback(
+    (en: string, bn?: string) => localized(language, en, bn),
+    [language],
+  );
   const notify = useCallback((message: string) => setToast(message), []);
-  const load = useCallback(async (visible: boolean) => {
+  const load = useCallback(async (visible = false) => {
     const version = ++requestVersion.current;
     if (visible) setLoading(true);
     setLoadError('');
@@ -73,11 +59,10 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       if (version !== requestVersion.current) return;
       dataRef.current = next;
       setData(next);
+      setRevision((value) => value + 1);
     } catch (reason) {
       if (version === requestVersion.current)
-        setLoadError(
-          reason instanceof Error ? reason.message : 'The publication could not be loaded.',
-        );
+        setLoadError(reason instanceof Error ? reason.message : 'The website could not be loaded.');
       throw reason;
     } finally {
       if (version === requestVersion.current) setLoading(false);
@@ -85,40 +70,33 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   }, []);
   const refresh = useCallback(async () => {
     try {
-      await load(true);
-      setRevision((value) => value + 1);
+      await load();
     } catch {
-      /* Boundary provides retry. */
+      /* Retry is shown by the page boundary. */
     }
   }, [load]);
   useEffect(() => {
-    void refresh();
+    void load(true).catch(() => undefined);
     const auth = (event: Event) => {
       privateRef.current = !!(event as CustomEvent<boolean>).detail;
       if (!privateRef.current) {
         dataRef.current = structuredClone(emptySiteData);
         setData(dataRef.current);
       }
-      void refresh();
+      void load(true).catch(() => undefined);
     };
     window.addEventListener('aqua:auth-changed', auth);
     return () => window.removeEventListener('aqua:auth-changed', auth);
-  }, [refresh]);
+  }, [load]);
   const update = useCallback(
-    (change: (previous: SiteData) => SiteData): Promise<boolean> => {
+    (change: (previous: SiteData) => SiteData) => {
       const operation = queue.current.then(async () => {
         setSaving(true);
         try {
           const next = await persistSiteChanges(dataRef.current, change(dataRef.current));
           dataRef.current = next;
           setData(next);
-          setRevision((value) => value + 1);
-          try {
-            await load(false);
-          } catch {
-            setLoadError('');
-            notify('Saved successfully. Refresh the page to load the latest server content.');
-          }
+          await load();
           return true;
         } catch (reason) {
           notify(reason instanceof Error ? reason.message : 'The change could not be saved.');
@@ -132,51 +110,34 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     },
     [load, notify],
   );
-  const remember = useCallback(
-    (collection: 'articles' | 'videos' | 'resources', item: { id: string }) => {
-      const current = dataRef.current;
-      const list = current[collection] as { id: string }[];
-      const next = {
-        ...current,
-        [collection]: list.some((value) => value.id === item.id)
-          ? list.map((value) => (value.id === item.id ? item : value))
-          : [...list, item],
-      } as SiteData;
-      dataRef.current = next;
-      setData(next);
-    },
-    [],
-  );
+  useEffect(() => {
+    document.documentElement.lang = language;
+    try {
+      localStorage.setItem('aqua:language', language);
+    } catch {
+      /* Optional preference. */
+    }
+  }, [language]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(''), 6000);
     return () => clearTimeout(timer);
   }, [toast]);
   useEffect(() => {
-    document.documentElement.lang = language;
-    try {
-      localStorage.setItem('aqua:language', language);
-    } catch {
-      /* Preference is optional. */
-    }
-  }, [language]);
-  useEffect(() => {
-    try {
-      localStorage.setItem('aqua:saved', JSON.stringify(saved));
-    } catch {
-      /* Bookmarks remain in this session. */
-    }
-  }, [saved]);
-  useEffect(() => {
-    const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-    if (favicon) {
-      favicon.href = assetUrl(data.settings.logoUrl || '/assets/logo.png');
-      favicon.removeAttribute('type');
+    const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (icon) {
+      icon.href = assetUrl(data.settings.logoUrl || '/assets/logo.png');
+      icon.removeAttribute('type');
     }
   }, [data.settings.logoUrl]);
   return (
-    <SiteContext.Provider
+    <Context.Provider
       value={{
+        siteName: localized(
+          language,
+          data.settings.siteTitle || 'Aqua Info BD',
+          data.settings.siteTitleBn,
+        ),
         data,
         update,
         refresh,
@@ -184,16 +145,10 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         loadError,
         saving,
         revision,
-        remember,
         language,
         setLanguage,
-        t,
+        t: translate,
         notify,
-        saved,
-        toggleSaved: (id) =>
-          setSaved((previous) =>
-            previous.includes(id) ? previous.filter((value) => value !== id) : [...previous, id],
-          ),
       }}
     >
       {children}
@@ -206,11 +161,11 @@ export function SiteProvider({ children }: { children: ReactNode }) {
           </button>
         </div>
       )}
-    </SiteContext.Provider>
+    </Context.Provider>
   );
 }
 export function useSite() {
-  const value = useContext(SiteContext);
+  const value = useContext(Context);
   if (!value) throw new Error('useSite requires SiteProvider');
   return value;
 }

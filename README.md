@@ -1,123 +1,96 @@
 # Aqua Info BD
 
-React + TypeScript publication and editorial workspace, connected to a separate Django REST backend. The original design references (`code.html`, `DESIGN.md`, `screen.png`) are retained. Published content is read from the backend; there is no local demo-content fallback.
+React + TypeScript frontend for the client’s **aqua info website suggestion.xlsx** navigation plan. The separate Django backend powers the public pages and CMS. This revision follows the workbook’s full ten-menu plan, including Blue Economy & Climate, and retains superadmin-managed users and role access.
 
-## Start locally
+## Run locally
 
-The backend is in the existing folder:
+Backend location (existing folder spelling preserved):
 
 ```text
 /Users/neonecy/Downloads/HAMIM WORKSPACE/aqua_info_bd_backned
 ```
 
-The folder’s existing spelling is preserved. Its `.env` contains the initial superadmin credentials from the approved project brief. Credentials are not included in this repository or compiled frontend.
-
-After backend setup, start both processes from this frontend folder:
+From this frontend folder:
 
 ```sh
-npm install
 npm run dev:full
 ```
 
-Stop any previous frontend/backend server first if it already owns ports 5173/8000. `dev:full` starts Django without its reloader and Vite with frontend hot reload; restart the command after changing backend Python files. Use `AQUA_BACKEND_PATH` to point the launcher at a different backend checkout.
-
-Or start them separately:
+Or use separate terminals:
 
 ```sh
-# Backend terminal
 cd "/Users/neonecy/Downloads/HAMIM WORKSPACE/aqua_info_bd_backned"
 source .venv/bin/activate
 python manage.py runserver 127.0.0.1:8000
 ```
 
 ```sh
-# Frontend terminal, in this project
 npm run dev
 ```
 
-- Public website: **http://127.0.0.1:5173/home**
-- Editorial login: **http://127.0.0.1:5173/admin/login**
-- Admin workspace: **http://127.0.0.1:5173/admin/**
-- Swagger: **http://127.0.0.1:8000/api/docs/**
+Website: http://127.0.0.1:5173/ · Admin: http://127.0.0.1:5173/admin/ · Swagger: http://127.0.0.1:8000/api/docs/
 
-The Vite development proxy forwards `/api/` and `/media/` to Django. SQLite keeps local setup small; the backend also supports PostgreSQL through `DATABASE_URL`. See the backend’s README for setup, backup, media serving, deployment, and authentication details.
+`/home` redirects to `/`. The Vite proxy forwards `/api/` and `/media/` to port 8000. The owner credentials stay in the backend `.env`; no credentials are compiled into the frontend. Existing accounts are retained, and the scope migration updates their permissions and requires signing in again.
 
-## Implemented publishing scope
+## Client feature scope
 
-- English/Bangla articles, drafts, publishing, categories, full-story reading, server-side search and paginated archives.
-- Real image/video/document uploads or media URLs. Videos play uploaded sources or supported YouTube/Vimeo embeds.
-- Published guides with document links or actual guide text. Pond-volume and FCR worksheets remain lightweight frontend calculations when those resource types are published.
-- Homepage lead selection, ordered sections and visibility, logo/branding settings, and bilingual footer editing.
-- Server-backed admin login and logout, automatic refresh through HttpOnly cookies, CSRF protection, account revocation, module permissions, and owner-managed custom roles.
-- Skeleton loading, retry/error states and server-confirmed saving. Public APIs never return drafts. Public readers do not need accounts.
-- Language preference and saved article IDs remain browser-local; bookmarks load the corresponding published stories from the API.
+| Menu                   | Public pages / content                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| Home                   | Featured Content, Latest Updates, editorial sections                                 |
+| News                   | Bangladesh & Global News, Industry & Market, Policy & Research Updates               |
+| Blog                   | Farming & Fish Health, Feed & Nutrition, Technology & Expert Insights                |
+| Podcast                | All Episodes, Expert Interviews, Research & Industry Talks                           |
+| Publications           | Research & Journal Articles, Technical Reports, E-books & Resources                  |
+| Problems & Solutions   | Fish Health & Disease, Water Quality, Feed & Farm Management                         |
+| Blue Economy & Climate | Blue Economy & Sustainability, Climate Change & Adaptation, Blue Carbon & Ecosystems |
+| Career & Jobs          | Aquaculture & Fisheries Jobs, Internships & Training, Scholarships & Fellowships     |
+| Events                 | Upcoming Events, Conferences & Webinars, Past Events & Resources                     |
+| About Us               | About Aqua Info, Our Team & Contributors, Contact & Editorial Policy                 |
 
-The initial publication has its real structural categories and branding but **no sample stories, videos, resources, or prices**. Empty sections show honest empty states until the editorial team publishes content. Previous browser-local demo content/accounts are not imported into the server.
+Each publishing section has its own list, categories, CMS editor and server-enforced access permission. The CMS supports author profiles, English/Bangla content, draft/published status, publish dates, SEO title/description, permanent slugs, cover uploads/URLs and image alt text. Homepage sections can be reordered or hidden; entries can be featured.
 
-## Deferred features
+Podcast entries use external audio hosting or allowlisted embeds. Publications support uploaded documents, original sources, DOI and citation text. Career entries include organizations, locations, job/program types, funding/salary, deadlines and official application links. Events include Dhaka-local dates, venue, format, registration, recordings and resource files; past events are grouped automatically by date.
 
-Live market data and Friday Dispatch subscriptions display **“Under development, coming soon.”** The interface does not accept subscription emails or show fabricated market prices. Newsletter sending, invitation emails, video transcoding and public reader accounts are not part of this release.
+Public authors are separate from administrative users. The superadmin can create users and custom roles, assign section permissions, reset passwords and suspend access. The owner role cannot be granted through the team API.
 
-## Contact / EmailJS
+The old standalone video reports, calculator/worksheet tools, live market-price widget, newsletter/subscription and saved-story interfaces have been removed. Industry/market **news** remains under News, as requested by the workbook. About and policy text is edited in the CMS; no client biographies, research, vacancies or event details are invented.
 
-`/contact` contains the contact workflow. Fill these frontend variables to enable EmailJS:
+## Frontend structure
+
+- `src/data/catalog.ts`: client navigation and public route labels.
+- `src/features/public/`: shared content lists/detail views, podcast/document rendering, homepage, About pages and profiles.
+- `src/features/admin/`: section editors, profiles, pages, homepage, categories, footer and branding.
+- `src/features/admin/access/`: server sessions, superadmin user management and role permissions.
+- `src/lib/api.ts`: CSRF-protected requests, HttpOnly-cookie session renewal and uploads.
+- `src/styles/client-scope.css`: responsive navigation, content grids and CMS layouts.
+
+Public content loads from the API with pagination, search, loading skeletons, error states and retry controls. Bangla uses Kalpurush; animations respect reduced motion. The only browser-local data retained is the language preference. No sample content is seeded.
+
+## Configuration and hosting
+
+Copy `.env.example` to `.env` only when overrides are needed:
 
 ```dotenv
-VITE_EMAILJS_SERVICE_ID=
-VITE_EMAILJS_TEMPLATE_ID=
-VITE_EMAILJS_PUBLIC_KEY=
+VITE_API_BASE_URL=
+VITE_BASE_PATH=/
 ```
 
-The EmailJS template should accept `from_name`, `from_email`, `reply_to`, and `message`. Configure the intended recipient and allowed website origins in EmailJS. These are public frontend integration IDs; do not put private provider credentials in Vite variables. Without them, the page shows the publication’s direct email address instead of pretending to send messages. No EmailJS account or keys were supplied with the brief, so sending is not configured yet.
+Blank API base uses `/api`. For a separate backend, supply its full HTTPS API URL. Root-domain deployments need an SPA history fallback to `index.html`. The existing GitHub Pages workflow keeps the project base path; Django still needs Python-capable hosting. No deployment is performed by source changes.
 
-## Frontend configuration
+Contact uses the publication email from backend settings, with submission/correction mail links and CMS-managed editorial guidance. It does not depend on an unconfigured email provider.
 
-Copy `.env.example` to `.env` when you need overrides:
+## API JSON downloads
 
-- `VITE_API_BASE_URL`: blank uses the same-origin `/api` route. Set the full HTTPS API URL for a separately hosted backend.
-- `VITE_BASE_PATH`: `/` for a purchased domain. `/aqua-info-BD/` preserves the current GitHub Pages project path.
+Import both Postman files and select the environment, then fill in your credentials privately. Run **CSRF token → Login → Current editorial user**. Tokens are in HttpOnly response cookies (`aqua_access`, `aqua_refresh`), managed by Postman’s cookie jar.
 
-The existing GitHub Pages workflow sets its project base path and reads API/EmailJS IDs from repository **variables**. No deployment has been triggered by this implementation. A statically hosted frontend still needs a running, reachable Django backend; it will show a connection error if no API is configured.
-
-For a root-domain deployment, serve `index.html` as the SPA history fallback. Prefer a same-origin or same-site API so authentication does not depend on third-party cookies. The backend README includes a starting Nginx configuration.
-
-## Source structure
-
-```text
-src/
-  app/                    App routes and API-backed publication context
-  components/layout/      Public/admin shells, brand, header and footer
-  components/ui/          Media input, loading/error states, dialogs and animations
-  data/                   Types, structural defaults, resource mutation adapter
-  features/public/        Public reading, videos, guides, search, contact
-  features/admin/         Content/configuration editors and team access
-  lib/                    API client, renewable sessions, query hooks, utilities
-  styles/                 Responsive publication, admin and integration styling
-```
-
-English uses local Public Sans / Source Serif 4; Bangla uses local Kalpurush. Animations respect reduced-motion preferences. See [ASSETS.md](ASSETS.md) for the supplied branding and retained design photography.
-
-## Checks and API handoff
-
-```sh
-npm run typecheck
-npm run build
-npm run format:check
-```
-
-The backend includes focused permission/authentication/upload checks, migrations, an OpenAPI export, and:
-
-```text
-docs/Aqua Info BD.postman_collection.json
-docs/Aqua Info BD.local.postman_environment.json
-```
-
-Import both files into Postman, enter credentials privately, run CSRF first and then Login. Neither file contains passwords or session tokens. The backend README documents all API routes, supported filters, and configuration fields.
-
-You can also download them from the Swagger page, or directly while Django is running:
-
-- [Postman collection JSON](http://127.0.0.1:8000/api/postman/collection.json)
-- [Postman environment JSON](http://127.0.0.1:8000/api/postman/environment.json)
+- [Postman collection](http://127.0.0.1:8000/api/postman/collection.json)
+- [Blank environment](http://127.0.0.1:8000/api/postman/environment.json)
 - [OpenAPI JSON](http://127.0.0.1:8000/api/schema.json)
 
-Login and refresh return user details in JSON; the JWTs are sent in HttpOnly cookies named `aqua_access` and `aqua_refresh`. Inspect the response cookies in Postman and leave its cookie jar enabled. No manual Bearer token is needed for the collection. The collection includes CRUD, settings, team, roles and upload templates; run individual requests after editing their values and choosing files.
+Re-import the updated collection for this revision; the CMS/public content now uses `/entries/` with a `section` filter. The backend includes migrations, independent content/media backup support and its own setup/deployment README.
+
+## Website polish and account profiles
+
+Website settings can change the English/Bangla website title across the interface and browser titles. Every content editor and About-page editor supports ordered galleries with multiple uploads or image links, captions and alt text. All account roles can update their own name/photo at `/admin/profile`; public author profiles remain separate.
+
+The overview uses server data for live content, drafts, scheduled releases, section totals, recent updates and upcoming opportunities. Delete actions use a shared confirmation dialog and server-side deletion. Search supports a keyboard shortcut (Cmd/Ctrl + K), clearer results and empty states. Contact uses the configured publication email without a client email-service dependency.

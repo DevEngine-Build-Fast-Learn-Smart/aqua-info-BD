@@ -1,0 +1,107 @@
+{
+  "description": "Aquaculture, fisheries and aquatic knowledge in Bangladesh and beyond.",
+  "descriptionBn": "বাংলাদেশ ও বিশ্বজুড়ে মৎস্য, অ্যাকুয়াকালচার ও জলজ জ্ঞানের সংযোগ।",
+  "email": "",
+  "location": "Dhanmondi, Dhaka 1205, Bangladesh",
+  "locationBn": "ধানমন্ডি, ঢাকা ১২০৫, বাংলাদেশ",
+  "bottomText": "Beyond the Water",
+  "bottomTextBn": "জলের সীমানা ছাড়িয়ে",
+  "copyright": "All rights reserved.",
+  "copyrightBn": "সর্বস্বত্ব সংরক্ষিত।",
+  "showBackToTop": true,
+  "columns": [
+    {
+      "id": "discover",
+      "title": "News & Knowledge",
+      "titleBn": "সংবাদ ও জ্ঞান",
+      "links": [
+        {
+          "id": "news",
+          "label": "News",
+          "labelBn": "সংবাদ",
+          "href": "/news"
+        },
+        {
+          "id": "blog",
+          "label": "Blog",
+          "labelBn": "ব্লগ",
+          "href": "/blog"
+        },
+        {
+          "id": "podcast",
+          "label": "Podcast",
+          "labelBn": "পডকাস্ট",
+          "href": "/podcast"
+        },
+        {
+          "id": "publications",
+          "label": "Publications",
+          "labelBn": "প্রকাশনা",
+          "href": "/publications"
+        }
+      ]
+    },
+    {
+      "id": "practice",
+      "title": "Ideas & Opportunities",
+      "titleBn": "ভাবনা ও সুযোগ",
+      "links": [
+        {
+          "id": "solutions",
+          "label": "Problems & Solutions",
+          "labelBn": "সমস্যা ও সমাধান",
+          "href": "/solutions"
+        },
+        {
+          "id": "blue-economy-climate",
+          "label": "Blue Economy & Climate",
+          "labelBn": "সুনীল অর্থনীতি ও জলবায়ু",
+          "href": "/blue-economy-climate"
+        },
+        {
+          "id": "careers",
+          "label": "Career & Jobs",
+          "labelBn": "ক্যারিয়ার ও চাকরি",
+          "href": "/careers"
+        },
+        {
+          "id": "events",
+          "label": "Events",
+          "labelBn": "অনুষ্ঠান",
+          "href": "/events"
+        }
+      ]
+    },
+    {
+      "id": "about",
+      "title": "Aqua Info BD",
+      "titleBn": "অ্যাকুয়া ইনফো বিডি",
+      "links": [
+        {
+          "id": "about",
+          "label": "About Us",
+          "labelBn": "আমাদের সম্পর্কে",
+          "href": "/about"
+        },
+        {
+          "id": "contributors",
+          "label": "Our Team & Contributors",
+          "labelBn": "আমাদের দল ও লেখক",
+          "href": "/about/team"
+        },
+        {
+          "id": "policy",
+          "label": "Contact & Editorial Policy",
+          "labelBn": "যোগাযোগ ও সম্পাদকীয় নীতি",
+          "href": "/about/contact-editorial-policy"
+        },
+        {
+          "id": "desk",
+          "label": "Editorial access",
+          "labelBn": "সম্পাদকীয় প্রবেশ",
+          "href": "/admin/"
+        }
+      ]
+    }
+  ]
+}

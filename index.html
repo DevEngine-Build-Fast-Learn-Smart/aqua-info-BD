@@ -1,22 +1,97 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#073b70" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a2e23">
+    <title>Aqua Info BD — Beyond the Water</title>
+
+    <!-- Search Engine Indexing & Baseline SEO -->
     <meta
       name="description"
-      content="Aqua Info BD — field reporting, aquaculture knowledge, and aquatic science from Bangladesh. Beyond the Water."
-    />
-    <link rel="icon" type="image/png" href="%BASE_URL%assets/logo.png" />
+      content="Aqua Info BD — Bangladesh's premier aquatic journal. Field reporting, commercial aquaculture knowledge, coastal fisheries, and aquatic science. Beyond the Water."
+    >
+    <meta
+      name="keywords"
+      content="aquaculture Bangladesh, fisheries, carp farming, shrimp farming Satkhira, hilsha sanctuary, blue economy, fish disease treatment, aqua market prices, aquatic science"
+    >
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="author" content="Aqua Info BD Editorial Desk">
+    <meta name="publisher" content="Aqua Info BD">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- Geographic & Regional Tags (Bangladesh) -->
+    <meta name="geo.region" content="BD">
+    <meta name="geo.placename" content="Dhaka, Bangladesh">
+    <meta name="geo.position" content="23.6850;90.3563">
+    <meta name="ICBM" content="23.6850, 90.3563">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Aqua Info BD">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="bn_BD">
+    <meta property="og:title" content="Aqua Info BD — Beyond the Water">
+    <meta
+      property="og:description"
+      content="Field reporting, commercial aquaculture knowledge, coastal fisheries, and aquatic science from Bangladesh."
+    >
+    <meta property="og:image" content="%BASE_URL%assets/logo.png">
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Aqua Info BD — Beyond the Water">
+    <meta
+      name="twitter:description"
+      content="Field reporting, commercial aquaculture knowledge, and aquatic science from Bangladesh."
+    >
+    <meta name="twitter:image" content="%BASE_URL%assets/logo.png">
+
+    <link rel="icon" type="image/png" href="%BASE_URL%assets/logo.png">
+    <link rel="apple-touch-icon" href="%BASE_URL%assets/logo.png">
     <link
       rel="preload"
       href="%BASE_URL%assets/fonts/kalpurush.ttf"
       as="font"
       type="font/ttf"
       crossorigin
-    />
-    <title>Aqua Info BD — Beyond the Water</title>
+    >
+
+    <!-- Structured Data: Organization & WebSite (Schema.org) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "NewsMediaOrganization",
+            "@id": "https://aquainfoz.com/#organization",
+            "name": "Aqua Info",
+            "alternateName": "অ্যাকোয়া ইনফো",
+            "url": "https://aquainfoz.com",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://aquainfoz.com/assets/logo.png"
+            },
+            "sameAs": [
+              "https://www.facebook.com",
+              "https://twitter.com",
+              "https://www.linkedin.com"
+            ],
+            "description": "Premier aquatic journal covering aquaculture, fisheries, and aquatic science."
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://aquainfoz.com/#website",
+            "url": "https://aquainfoz.com",
+            "name": "Aqua Info",
+            "publisher": {
+              "@id": "https://aquainfoz.com/#organization"
+            },
+            "inLanguage": ["en", "bn"]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

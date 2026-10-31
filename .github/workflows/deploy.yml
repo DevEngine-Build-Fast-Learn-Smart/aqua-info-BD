@@ -38,9 +38,6 @@ jobs:
         env:
           VITE_BASE_PATH: /aqua-info-BD/
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-          VITE_EMAILJS_SERVICE_ID: ${{ vars.VITE_EMAILJS_SERVICE_ID }}
-          VITE_EMAILJS_TEMPLATE_ID: ${{ vars.VITE_EMAILJS_TEMPLATE_ID }}
-          VITE_EMAILJS_PUBLIC_KEY: ${{ vars.VITE_EMAILJS_PUBLIC_KEY }}
         run: |
           npm run build
           cp dist/index.html dist/404.html

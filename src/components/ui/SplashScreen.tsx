@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { WebsiteLogo } from './WebsiteLogo';
+import { useSite } from '../../app/SiteProvider';
 export function SplashScreen() {
+  const { siteName, data, t } = useSite();
   const [visible, setVisible] = useState(() => {
     try {
       return !sessionStorage.getItem('aqua:welcomed');
@@ -34,13 +36,14 @@ export function SplashScreen() {
     <div
       className={`splash ${leaving ? 'splash-leaving' : ''}`}
       role="status"
-      aria-label="Welcome to Aqua Info BD"
+      aria-label={`Welcome to ${siteName}`}
     >
       <div className="splash-orbit">
         <span />
-        <WebsiteLogo alt="Aqua Info BD — Beyond the Water" />
+        <WebsiteLogo alt={siteName} />
       </div>
-      <p>STORIES FROM THE WATER. PERSPECTIVES BEYOND IT.</p>
+      <strong className="splash-site-title">{siteName}</strong>
+      <p>{t(data.settings.tagline, data.settings.taglineBn)}</p>
       <div className="splash-progress">
         <span />
       </div>

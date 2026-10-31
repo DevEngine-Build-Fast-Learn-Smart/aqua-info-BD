@@ -1,0 +1,31 @@
+# Aqua Info BD - Search Engine Crawlers Policy
+# https://www.robotstxt.org/robotstxt.html
+
+User-agent: *
+Allow: /
+Allow: /home
+Allow: /about
+Allow: /contact
+Allow: /editorial-policy
+Allow: /authors
+Allow: /articles/
+Allow: /podcasts/
+Allow: /publications/
+Allow: /problems-solutions/
+Allow: /blue-economy-climate/
+Allow: /career-jobs/
+Allow: /events/
+Allow: /categories/
+Allow: /assets/
+
+# Block administrative desk, auth endpoints, and internal APIs from index
+Disallow: /admin/
+Disallow: /admin/*
+Disallow: /auth/
+Disallow: /auth/*
+Disallow: /api/admin/
+Disallow: /api/auth/
+
+# Specify Sitemap
+Sitemap: https://aquainfoz.com/sitemap.xml
+

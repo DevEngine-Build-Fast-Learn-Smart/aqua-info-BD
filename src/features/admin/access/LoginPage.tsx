@@ -2,9 +2,13 @@ import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, LoaderCircle, LockKeyhole, Waves } from 'lucide-react';
 import { useAccess } from './AccessProvider';
+import { usePageMeta } from '../../../lib/usePageMeta';
+import { useSite } from '../../../app/SiteProvider';
 import { Brand } from '../../../components/layout/Brand';
 
 export default function LoginPage() {
+  const { siteName } = useSite();
+  usePageMeta('Sign in', undefined, undefined, { noIndex: true });
   const { currentUser, signIn } = useAccess();
   const navigate = useNavigate();
   const location = useLocation();
@@ -63,7 +67,7 @@ export default function LoginPage() {
           </div>
         </div>
         <div className="login-story-bottom">
-          <span>AQUA INFO BD</span>
+          <span>{siteName}</span>
           <span>BEYOND THE WATER</span>
         </div>
         <div className="login-contours" aria-hidden="true">
@@ -73,7 +77,7 @@ export default function LoginPage() {
         </div>
       </section>
       <section className="login-form-panel">
-        <Link className="back-link" to="/home">
+        <Link className="back-link" to="/">
           <ArrowLeft size={17} />
           Back to the publication
         </Link>
@@ -94,7 +98,7 @@ export default function LoginPage() {
                 autoComplete="username"
                 type="email"
                 required
-                placeholder="you@aquainfobd.com"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(event) => {
                   setEmail(event.target.value);
@@ -143,7 +147,7 @@ export default function LoginPage() {
           </p>
         </div>
         <div className="login-panel-footer">
-          <span>THE AQUA INFO BD JOURNAL</span>
+          <span>{siteName}</span>
           <span>THOUGHTFULLY PUT TOGETHER.</span>
         </div>
       </section>

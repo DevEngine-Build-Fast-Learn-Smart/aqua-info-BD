@@ -1,14 +1,43 @@
+import type { ContentSection } from './catalog';
 export type Language = 'en' | 'bn';
 export type Status = 'published' | 'draft';
-export interface Category {
-  articleCount?: number;
+export interface GalleryImage {
   id: string;
+  url: string;
+  alt: string;
+  caption: string;
+  captionBn: string;
+}
+export interface Category {
+  id: string;
+  section: ContentSection;
+  slug: string;
   name: string;
   nameBn: string;
   description: string;
+  position: number;
+  entryCount?: number;
 }
-export interface Article {
+export interface Author {
   id: string;
+  name: string;
+  nameBn: string;
+  role: string;
+  roleBn: string;
+  bio: string;
+  bioBn: string;
+  image: string;
+  imageAlt: string;
+  website: string;
+  isTeam: boolean;
+  isActive: boolean;
+  position: number;
+}
+export interface Entry {
+  gallery: GalleryImage[];
+  updatedAt?: string;
+  id: string;
+  section: ContentSection;
   slug: string;
   title: string;
   titleBn: string;
@@ -18,57 +47,53 @@ export interface Article {
   bodyBn: string;
   category: string;
   author: string;
+  authorProfile: string | null;
+  authorDetails?: Author | null;
   location: string;
   image: string;
   imageAlt: string;
   date: string;
   readTime: number;
   status: Status;
-}
-export interface Video {
-  mediaUrl?: string;
-  descriptionBn?: string;
-  id: string;
-  title: string;
-  titleBn: string;
-  description: string;
-  image: string;
+  featured: boolean;
+  seoTitle: string;
+  seoDescription: string;
+  sourceUrl: string;
+  audioUrl: string;
+  embedUrl: string;
   duration: string;
-  location: string;
-  status: Status;
+  episodeNumber: number | null;
+  fileUrl: string;
+  doi: string;
+  citation: string;
+  organization: string;
+  employmentType: string;
+  salary: string;
+  deadline: string | null;
+  applicationUrl: string;
+  eventStart: string | null;
+  eventEnd: string | null;
+  venue: string;
+  eventFormat: 'online' | 'in-person' | 'hybrid';
+  registrationUrl: string;
+  recordingUrl: string;
 }
-export interface Resource {
-  body?: string;
-  bodyBn?: string;
-  fileUrl?: string;
-  id: string;
+export interface SitePage {
+  gallery: GalleryImage[];
+  id: 'about' | 'team' | 'editorial-policy';
   title: string;
   titleBn: string;
-  description: string;
-  type: 'calculator' | 'guide' | 'worksheet';
+  body: string;
+  bodyBn: string;
+  seoTitle: string;
+  seoDescription: string;
   status: Status;
-}
-export interface MarketRate {
-  id: string;
-  species: string;
-  speciesBn: string;
-  price: number;
-  change: number;
 }
 export interface HomeSection {
   id: string;
   name: string;
   nameBn: string;
   enabled: boolean;
-}
-export interface SiteSettings {
-  footer?: FooterSettings;
-  logoUrl?: string;
-  tagline: string;
-  taglineBn: string;
-  email: string;
-  description: string;
-  leadArticleId: string;
 }
 export interface FooterLink {
   id: string;
@@ -83,39 +108,101 @@ export interface FooterColumn {
   links: FooterLink[];
 }
 export interface FooterSettings {
-  folio: string;
-  folioBn: string;
-  edition: string;
-  editionBn: string;
-  headline: string;
-  headlineBn: string;
-  subheadline: string;
-  subheadlineBn: string;
   description: string;
   descriptionBn: string;
-  signupTitle: string;
-  signupTitleBn: string;
-  aboutText: string;
-  aboutTextBn: string;
   email: string;
+  location?: string;
+  locationBn?: string;
   bottomText: string;
   bottomTextBn: string;
   copyright: string;
   copyrightBn: string;
-  showNewsletter: boolean;
-  showSignature: boolean;
   showBackToTop: boolean;
   columns: FooterColumn[];
 }
+export interface WeatherHourly {
+  time: string;
+  temperature: number;
+  condition: string;
+  conditionBn?: string;
+  code?: number;
+  icon?: string;
+  isDay?: boolean;
+}
+export interface WeatherData {
+  enabled: boolean;
+  provider?: string;
+  city?: string;
+  cityBn?: string;
+  temperature?: number;
+  apparentTemperature?: number;
+  tempMax?: number;
+  tempMin?: number;
+  condition?: string;
+  conditionBn?: string;
+  code?: number;
+  icon?: string;
+  humidity?: number;
+  windSpeed?: number;
+  windDirection?: number;
+  pressure?: number;
+  precipitation?: number;
+  sunrise?: string;
+  sunset?: string;
+  isDay?: boolean;
+  hourly?: WeatherHourly[];
+  lat?: number;
+  lon?: number;
+}
+export interface SiteSettings {
+  siteTitle: string;
+  siteTitleBn: string;
+  logoUrl: string;
+  tagline: string;
+  taglineBn: string;
+  email: string;
+  description: string;
+  featuredEntryId: string | null;
+  footer: FooterSettings;
+  weatherEnabled?: boolean;
+  weatherDefaultCity?: string;
+  weatherDefaultCityBn?: string;
+  weatherUseDefaultApi?: boolean;
+  weatherApiProvider?: string;
+  weatherApiKey?: string;
+  weatherApiEndpoint?: string;
+}
 export interface SiteData {
-  counts?: { published: number; drafts: number; videos: number; articles: number };
-  features?: { market: boolean; newsletter: boolean; contact: boolean };
-  version: 1;
-  articles: Article[];
+  overview?: {
+    live: number;
+    scheduled: number;
+    drafts: number;
+    upcomingEvents: number;
+    openCareers: number;
+    sections: {
+      section: ContentSection;
+      total: number;
+      live: number;
+      drafts: number;
+      scheduled: number;
+    }[];
+    recentEntries: Entry[];
+    pendingDrafts: Entry[];
+  };
+  version: 2;
+  entries: Entry[];
+  latest: Entry[];
+  featured: Entry[];
+  highlights: Partial<Record<ContentSection, Entry[]>>;
   categories: Category[];
-  videos: Video[];
-  resources: Resource[];
-  market: MarketRate[];
+  authors: Author[];
+  pages: SitePage[];
   sections: HomeSection[];
   settings: SiteSettings;
+  counts: {
+    published: number;
+    drafts: number;
+    entries: number;
+    bySection: Partial<Record<ContentSection, number>>;
+  };
 }

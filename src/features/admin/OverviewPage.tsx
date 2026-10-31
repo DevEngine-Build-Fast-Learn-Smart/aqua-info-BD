@@ -1,235 +1,285 @@
+import {
+  ArrowRight,
+  ArrowUpRight,
+  CalendarDays,
+  Clock3,
+  FileCheck2,
+  FilePenLine,
+  Plus,
+  UsersRound,
+  CheckCircle2,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, BookOpen, FileText, Plus, Video } from 'lucide-react';
 import { useSite } from '../../app/SiteProvider';
-import { AdminPageHeader } from './AdminPageHeader';
-import { assetUrl, formatDate, today } from '../../lib/utils';
 import { useAccess } from './access/AccessProvider';
+import { contentSections, sectionById } from '../../data/catalog';
+import { Avatar } from '../../components/ui/Avatar';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { entryPath } from '../../data/catalog';
+import { today } from '../../lib/utils';
 export default function OverviewPage() {
-  const { data } = useSite();
-  const { can } = useAccess();
-  const lead =
-    data.articles.find((a) => a.id === data.settings.leadArticleId && a.status === 'published') ||
-    data.articles.find((a) => a.status === 'published');
-  const published = data.articles.filter((a) => a.status === 'published');
-  const drafts = data.articles.filter((a) => a.status === 'draft');
-  const metrics = [
+  const { data, siteName } = useSite();
+  const { currentUser, can, members } = useAccess();
+  const overview = data.overview;
+  const areas = contentSections.filter((section) => can(section.id));
+  const stats = [
     {
-      label: 'PUBLISHED STORIES',
-      value: data.counts?.published ?? published.length,
-      icon: FileText,
-      note: 'Perspectives out in the world',
-      to: '/admin/articles?status=published',
+      label: 'Live on the website',
+      value: overview?.live ?? 0,
+      note: 'Published and available to readers',
+      icon: FileCheck2,
+      className: 'live',
     },
     {
-      label: 'ON THE EDITING DESK',
-      value: data.counts?.drafts ?? drafts.length,
-      icon: BookOpen,
-      note: 'Drafts ready for your attention',
-      to: '/admin/articles?status=draft',
+      label: 'Drafts to review',
+      value: overview?.drafts ?? data.counts.drafts,
+      note: 'Saved privately, ready for your attention',
+      icon: FilePenLine,
+      className: 'draft',
     },
     {
-      label: 'VISUAL FIELD REPORTS',
-      value: data.counts?.videos ?? data.videos.filter((v) => v.status === 'published').length,
-      icon: Video,
-      note: 'Stories with a different lens',
-      to: '/admin/videos',
+      label: 'Scheduled content',
+      value: overview?.scheduled ?? 0,
+      note: 'Goes live on its publish date',
+      icon: Clock3,
+      className: 'scheduled',
+    },
+    {
+      label: 'Upcoming events',
+      value: overview?.upcomingEvents ?? 0,
+      note: `${overview?.openCareers ?? 0} open career opportunities`,
+      icon: CalendarDays,
+      className: 'events',
     },
   ];
+  const date = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'Asia/Dhaka',
+  }).format(new Date());
+  const recent = overview?.recentEntries || [],
+    drafts = overview?.pendingDrafts || [];
+  const max = Math.max(1, ...(overview?.sections || []).map((section) => section.total));
   return (
-    <>
-      <AdminPageHeader
-        eyebrow={`${formatDate(today()).toUpperCase()} / YOUR PUBLICATION AT A GLANCE`}
-        title="A good day for a new perspective."
-        description="Shape the journal. Follow the stories. Keep the water in view."
-      >
-        {can('articles') && (
-          <Link className="button button-primary" to="/admin/articles/new">
-            <Plus size={17} />
-            Create a story
-          </Link>
-        )}
-      </AdminPageHeader>
-      <div className="admin-metrics">
-        {metrics.map((metric, index) => (
-          <Link
-            key={metric.label}
-            to={
-              can(metric.to.startsWith('/admin/videos') ? 'videos' : 'articles')
-                ? metric.to
-                : '/admin/'
-            }
-            className="admin-metric"
-          >
+    <div className="dashboard-overview">
+      <header className="dashboard-welcome">
+        <div>
+          <span className="eyebrow">{siteName} / EDITORIAL OVERVIEW</span>
+          <h1>Welcome back, {currentUser?.name.split(' ')[0] || 'editor'}.</h1>
+          <p>
+            {date}
+            <span>·</span>
+            {currentUser?.role === 'owner'
+              ? 'Across your entire publication'
+              : 'Your assigned content sections'}
+          </p>
+        </div>
+        <Link to="/admin/profile" className="dashboard-account">
+          <Avatar user={currentUser} />
+          <div>
+            <strong>{currentUser?.name}</strong>
+            <span>{currentUser?.role}</span>
+          </div>
+          <ArrowUpRight size={16} />
+        </Link>
+      </header>
+      <div className="dashboard-stat-grid">
+        {stats.map((stat) => (
+          <article className={`dashboard-stat stat-${stat.className}`} key={stat.label}>
             <div>
-              <span className="eyebrow">{metric.label}</span>
-              <metric.icon size={19} strokeWidth={1.5} />
+              <span>{stat.label}</span>
+              <stat.icon size={20} />
             </div>
-            <strong>
-              {String(metric.value).padStart(2, '0')}
-              <span>0{index + 1}</span>
-            </strong>
-            <p>
-              {metric.note}
-              <ArrowUpRight size={16} />
-            </p>
-          </Link>
+            <strong>{stat.value.toLocaleString()}</strong>
+            <p>{stat.note}</p>
+          </article>
         ))}
       </div>
-      <div className="overview-editorial">
-        <section className="admin-panel lead-preview-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="tiny-square" />
-              <h2>On the front page</h2>
-            </div>
-            {can('homepage') && (
-              <Link className="text-link" to="/admin/homepage">
-                Manage homepage
-                <ArrowUpRight size={15} />
-              </Link>
-            )}
-          </div>
-          {lead ? (
-            <div className="admin-lead-preview">
-              <div className="admin-lead-image">
-                <img src={assetUrl(lead.image)} alt={lead.imageAlt} />
-                <span>THE LEAD STORY</span>
-              </div>
-              <div>
-                <span className="eyebrow">
-                  {data.categories.find((c) => c.id === lead.category)?.name}
-                </span>
-                <h3>{lead.title}</h3>
-                <p>{lead.excerpt}</p>
-                <div className="admin-preview-bottom">
-                  <span>{lead.author}</span>
-                  {can('articles') && (
-                    <Link to={`/admin/articles/${lead.id}`} className="text-link">
-                      Edit story
-                      <ArrowUpRight size={15} />
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <p className="panel-padding muted">Publish a story to give your front page a lead.</p>
-          )}
-        </section>
-        <section className="edition-note">
-          <span className="eyebrow">A NOTE FROM THE DESK</span>
-          <span className="edition-number">
-            01<span>/ IN THE MAKING</span>
-          </span>
-          <h2>
-            A publication is built
-            <br />
-            one good story at a time.
-          </h2>
-          <p>
-            Your public site and editorial desk share one content library. Every saved edit helps
-            you see the full picture.
-          </p>
-          <div>
-            <span className="status-dot" />
-            Connected publication · Server storage
-          </div>
-          <Link to="/home" target="_blank" rel="noreferrer">
-            Explore the public view
-            <ArrowUpRight size={18} />
-          </Link>
-        </section>
-      </div>
-      <div className="overview-bottom">
-        <section className="admin-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="tiny-square" />
-              <h2>From the editing desk</h2>
-            </div>
-            {can('articles') && (
-              <Link to="/admin/articles" className="text-link">
-                All stories
-                <ArrowRight size={15} />
-              </Link>
-            )}
-          </div>
-          <div className="table-scroll">
-            <table className="data-table editorial-table">
-              <thead>
-                <tr>
-                  <th>STORY</th>
-                  <th>STATUS</th>
-                  <th>DATE</th>
-                  <th>
-                    <span className="sr-only">Edit</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...data.articles]
-                  .sort((a, b) => b.date.localeCompare(a.date))
-                  .slice(0, 5)
-                  .map((article) => (
-                    <tr key={article.id}>
-                      <td>
-                        <Link
-                          to={
-                            can('articles')
-                              ? `/admin/articles/${article.id}`
-                              : article.status === 'published'
-                                ? `/articles/${article.slug}`
-                                : '/admin/'
-                          }
-                        >
-                          <strong>{article.title}</strong>
-                          <small>
-                            {data.categories.find((c) => c.id === article.category)?.name}
-                          </small>
-                        </Link>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${article.status}`}>{article.status}</span>
-                      </td>
-                      <td className="date-cell">{formatDate(article.date)}</td>
-                      <td>
-                        {can('articles') && (
-                          <Link
-                            className="icon-button"
-                            to={`/admin/articles/${article.id}`}
-                            aria-label={`Edit ${article.title}`}
-                          >
-                            <ArrowUpRight size={17} />
-                          </Link>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-        <section className="admin-panel homepage-map">
-          <div className="panel-heading">
-            <h2>The homepage, in order</h2>
-          </div>
-          <div>
-            {data.sections.map((section, index) => (
-              <Link key={section.id} to={can('homepage') ? '/admin/homepage' : '/admin/'}>
-                <span>0{index + 1}</span>
-                <strong>{section.name}</strong>
-                <i className={section.enabled ? 'enabled-dot' : 'disabled-dot'} />
-              </Link>
-            ))}
-          </div>
+      {areas.length > 0 && (
+        <section className="dashboard-quick-actions" aria-label="Quick actions">
+          <span className="eyebrow">START HERE</span>
+          {areas.slice(0, 4).map((section) => (
+            <Link to={`/admin/${section.id}/new`} key={section.id}>
+              <Plus size={17} />
+              {section.id === 'podcast'
+                ? 'Add an episode'
+                : section.id === 'events'
+                  ? 'Create an event'
+                  : 'Create ' + section.name.toLowerCase()}
+            </Link>
+          ))}
           {can('homepage') && (
-            <Link className="text-link map-action" to="/admin/homepage">
-              Arrange your publication
-              <ArrowRight size={15} />
+            <Link to="/admin/homepage">
+              Manage homepage
+              <ArrowRight size={17} />
             </Link>
           )}
         </section>
+      )}
+      <div className="dashboard-main-grid">
+        <section className="admin-panel dashboard-content-health">
+          <div className="panel-heading">
+            <div>
+              <h2>Content by section</h2>
+              <p className="caption">Live content, work in progress and scheduled releases</p>
+            </div>
+            <span className="dashboard-total">{data.counts.entries} total</span>
+          </div>
+          <div className="dashboard-health-legend">
+            <span>
+              <i className="health-live" />
+              Live
+            </span>
+            <span>
+              <i className="health-draft" />
+              Draft
+            </span>
+            <span>
+              <i className="health-scheduled" />
+              Scheduled
+            </span>
+          </div>
+          {areas.length ? (
+            <div className="dashboard-section-rows">
+              {areas.map((section) => {
+                const value = overview?.sections.find((item) => item.section === section.id);
+                const live = value?.live || 0,
+                  draft = value?.drafts || 0,
+                  scheduled = value?.scheduled || 0;
+                return (
+                  <Link to={'/admin/' + section.id} key={section.id}>
+                    <div>
+                      <strong>{section.name}</strong>
+                      <span>
+                        {value?.total || 0}
+                        <ArrowUpRight size={15} />
+                      </span>
+                    </div>
+                    <div className="dashboard-health-track">
+                      <span className="health-live" style={{ width: `${(live / max) * 100}%` }} />
+                      <span className="health-draft" style={{ width: `${(draft / max) * 100}%` }} />
+                      <span
+                        className="health-scheduled"
+                        style={{ width: `${(scheduled / max) * 100}%` }}
+                      />
+                    </div>
+                    <p>
+                      {live} live<span>·</span>
+                      {draft} draft<span>·</span>
+                      {scheduled} scheduled
+                    </p>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState
+              title="Overview access only"
+              description="No publishing sections have been assigned to this account. Your superadmin can update your role and access."
+            />
+          )}
+        </section>
+        <section className="admin-panel dashboard-draft-panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Ready for your attention</h2>
+              <span className="caption">Your latest drafts</span>
+            </div>
+            <FilePenLine size={22} />
+          </div>
+          {drafts.length ? (
+            <div className="dashboard-draft-list">
+              {drafts.map((entry) => (
+                <Link key={entry.id} to={`/admin/${entry.section}/${entry.id}`}>
+                  <span className="eyebrow">{sectionById(entry.section)?.name}</span>
+                  <h3>{entry.title}</h3>
+                  <span>
+                    Continue editing
+                    <ArrowRight size={15} />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={CheckCircle2}
+              title="Your editing desk is clear."
+              description="There are no drafts awaiting attention in your assigned sections."
+            />
+          )}
+        </section>
       </div>
-    </>
+      <section className="admin-panel dashboard-recent">
+        <div className="panel-heading">
+          <h2>Recently updated</h2>
+          <span className="caption">Latest content changes in your workspace</span>
+        </div>
+        {recent.length ? (
+          <div className="dashboard-recent-list">
+            {recent.map((entry) => (
+              <article key={entry.id}>
+                <div>
+                  <span className="eyebrow">{sectionById(entry.section)?.name}</span>
+                  <h3>
+                    <Link to={`/admin/${entry.section}/${entry.id}`}>{entry.title}</Link>
+                  </h3>
+                  <span className="caption">
+                    {entry.updatedAt
+                      ? new Intl.DateTimeFormat('en-GB', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                          timeZone: 'Asia/Dhaka',
+                        }).format(new Date(entry.updatedAt))
+                      : entry.date}
+                  </span>
+                </div>
+                <span
+                  className={`dashboard-content-status ${entry.status === 'draft' ? 'draft' : entry.date > today() ? 'scheduled' : 'live'}`}
+                >
+                  {entry.status === 'draft' ? 'Draft' : entry.date > today() ? 'Scheduled' : 'Live'}
+                </span>
+                <Link
+                  className="icon-button"
+                  aria-label={'Edit ' + entry.title}
+                  to={`/admin/${entry.section}/${entry.id}`}
+                >
+                  <ArrowUpRight size={18} />
+                </Link>
+                {entry.status === 'published' && entry.date <= today() && (
+                  <Link
+                    className="text-link dashboard-public-link"
+                    target="_blank"
+                    to={entryPath(entry)}
+                  >
+                    View
+                    <ArrowUpRight size={15} />
+                  </Link>
+                )}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="Your publication starts here."
+            description="Create your first content item and it will appear in your recent activity."
+          />
+        )}
+      </section>
+      {can('team') && (
+        <Link to="/admin/team" className="dashboard-team-summary">
+          <span>
+            <UsersRound size={22} />
+            <strong>
+              {members.filter((member) => member.status === 'active').length} active team accounts
+            </strong>
+          </span>
+          <span>
+            {members.filter((member) => member.status !== 'active').length} suspended
+            <ArrowUpRight size={18} />
+          </span>
+        </Link>
+      )}
+    </div>
   );
 }

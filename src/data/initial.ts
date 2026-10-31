@@ -1,24 +1,32 @@
 import type { SiteData } from './types';
 import { defaultFooter } from './footer';
-
-/** Structural branding only. Published content always comes from Django. */
 export const emptySiteData: SiteData = {
-  version: 1,
-  articles: [],
-  videos: [],
+  version: 2,
+  entries: [],
+  latest: [],
+  featured: [],
+  highlights: {},
   categories: [],
-  resources: [],
-  market: [],
+  authors: [],
+  pages: [],
   sections: [],
   settings: {
+    siteTitle: 'Aqua Info BD',
+    siteTitleBn: '',
     logoUrl: '/assets/logo.png',
     tagline: 'Beyond the Water',
     taglineBn: 'জলের সীমানা ছাড়িয়ে',
     email: '',
     description: '',
-    leadArticleId: '',
+    featuredEntryId: null,
     footer: defaultFooter,
+    weatherEnabled: true,
+    weatherDefaultCity: 'Dhaka',
+    weatherDefaultCityBn: 'ঢাকা',
+    weatherUseDefaultApi: true,
+    weatherApiProvider: 'open-meteo',
+    weatherApiKey: '',
+    weatherApiEndpoint: '',
   },
-  counts: { published: 0, drafts: 0, videos: 0, articles: 0 },
-  features: { market: false, newsletter: false, contact: true },
+  counts: { published: 0, drafts: 0, entries: 0, bySection: {} },
 };

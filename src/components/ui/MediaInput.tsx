@@ -1,98 +1,112 @@
 import { useRef, useState } from 'react';
-import { Link2, LoaderCircle, Upload } from 'lucide-react';
+import { Upload, LoaderCircle, X, Image as ImageIcon, FileText } from 'lucide-react';
 import { uploadMedia } from '../../lib/api';
-import { assetUrl } from '../../lib/utils';
+import type { ContentSection } from '../../data/catalog';
 
 export function MediaInput({
+  label,
   value,
   onChange,
   kind = 'image',
   purpose,
-  label,
+  disabled = false,
+  onBusyChange,
 }: {
+  label: string;
   value: string;
   onChange: (value: string) => void;
-  kind?: 'image' | 'video' | 'document';
-  purpose: 'articles' | 'videos' | 'resources' | 'settings';
-  label: string;
+  kind?: 'image' | 'document';
+  purpose: ContentSection | 'authors' | 'settings' | 'profile' | 'pages';
+  disabled?: boolean;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const accepts = {
-    image: 'image/png,image/jpeg,image/webp,image/gif,image/svg+xml',
-    video: 'video/mp4,video/webm,video/quicktime,.mov,.m4v',
-    document: '.pdf,.txt,.csv',
-  };
+
+  async function upload(file?: File) {
+    if (!file) return;
+    setBusy(true);
+    onBusyChange?.(true);
+    setError('');
+    try {
+      onChange((await uploadMedia(file, kind, purpose)).url);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Upload failed.');
+    } finally {
+      setBusy(false);
+      onBusyChange?.(false);
+    }
+  }
+
   return (
     <div className="media-input">
-      <span className="eyebrow">{label}</span>
-      {kind === 'image' && value && (
-        <img className="media-input-preview" src={assetUrl(value)} alt="Selected image" />
-      )}
-      <label className="field">
-        <span>DIRECT URL</span>
-        <div className="search-field">
-          <Link2 size={16} />
+      <div className="media-input-header">
+        <span className="media-input-label">{label}</span>
+      </div>
+
+      <div className="media-input-control-group">
+        <div className="media-input-box">
+          <span className="media-input-prefix-icon" aria-hidden="true">
+            {kind === 'image' ? <ImageIcon size={16} /> : <FileText size={16} />}
+          </span>
           <input
-            type="url"
-            value={value.startsWith('/') ? '' : value}
-            onChange={(event) => {
-              onChange(event.target.value);
-              setError('');
-            }}
-            placeholder="https://…"
-            aria-label={`${label} URL`}
-            disabled={busy}
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder={
+              kind === 'image'
+                ? 'Upload an image or paste direct URL…'
+                : 'Upload a document or paste URL…'
+            }
+            disabled={disabled || busy}
           />
+          {value && !disabled && !busy && (
+            <button
+              type="button"
+              className="media-input-clear"
+              onClick={() => onChange('')}
+              title="Clear input"
+              aria-label="Clear input"
+            >
+              <X size={15} />
+            </button>
+          )}
         </div>
-      </label>
-      <input
-        className="sr-only"
-        ref={input}
-        type="file"
-        accept={accepts[kind]}
-        aria-label={`Upload ${label}`}
-        disabled={busy}
-        onChange={async (event) => {
-          const file = event.target.files?.[0];
-          event.target.value = '';
-          if (!file) return;
-          setBusy(true);
-          setError('');
-          try {
-            const result = await uploadMedia(file, kind, purpose);
-            onChange(result.url);
-          } catch (reason) {
-            setError(reason instanceof Error ? reason.message : 'The upload failed.');
-          } finally {
-            setBusy(false);
+
+        <input
+          ref={input}
+          className="sr-only"
+          type="file"
+          accept={
+            kind === 'image'
+              ? 'image/png,image/jpeg,image/webp,image/gif,image/svg+xml'
+              : '.pdf,.txt,.csv'
           }
-        }}
-      />
-      <div className="media-input-actions">
+          onChange={(event) => {
+            void upload(event.target.files?.[0]);
+            event.target.value = '';
+          }}
+        />
+
         <button
           type="button"
-          className="button button-outline"
-          disabled={busy}
+          className="media-upload-btn"
+          disabled={disabled || busy}
           onClick={() => input.current?.click()}
         >
-          {busy ? <LoaderCircle className="spin" size={16} /> : <Upload size={16} />}
-          {busy ? 'Uploading…' : `Upload ${kind === 'document' ? 'document' : kind}`}
+          {busy ? <LoaderCircle size={15} className="spin" /> : <Upload size={15} />}
+          <span>{busy ? 'Uploading…' : 'Choose file'}</span>
         </button>
-        {value && (
-          <button type="button" className="text-link" disabled={busy} onClick={() => onChange('')}>
-            Remove
-          </button>
-        )}
       </div>
-      <small>
-        {kind === 'image'
-          ? 'PNG, JPG, WebP, GIF or safe SVG · up to 5 MB'
-          : kind === 'video'
-            ? 'MP4, WebM or MOV · up to 100 MB. Hosted YouTube and Vimeo links are also supported.'
-            : 'PDF, TXT or CSV · up to 10 MB'}
-      </small>
+
+      <div className="media-upload-meta">
+        <span className="caption media-upload-caption">
+          {kind === 'image'
+            ? 'PNG, JPG, WebP, GIF, safe SVG · up to 5 MB'
+            : 'PDF, TXT, CSV · up to 10 MB'}
+        </span>
+      </div>
+
       {error && (
         <p className="form-error" role="alert">
           {error}

@@ -3,21 +3,26 @@ import { expect, test } from '@playwright/test';
 // The previous UI-only suite depended on seeded demo stories. These checks exercise
 // real loading/error/empty states without importing sample content into the app.
 const initial = {
-  version: 1,
-  articles: [],
+  version: 2,
+  entries: [],
+  latest: [],
+  featured: [],
+  highlights: {},
   categories: [],
-  videos: [],
-  resources: [],
-  market: [],
-  sections: [{ id: 'lead', name: 'Lead story', nameBn: 'প্রধান প্রতিবেদন', enabled: true }],
+  authors: [],
+  pages: [],
+  sections: [
+    { id: 'featured', name: 'Featured Content', nameBn: 'নির্বাচিত বিষয়', enabled: true },
+  ],
   settings: {
+    logoUrl: '/assets/logo.png',
     tagline: 'Beyond the Water',
     taglineBn: 'জলের সীমানা ছাড়িয়ে',
     email: '',
     description: '',
-    leadArticleId: '',
+    featuredEntryId: null,
   },
-  counts: { published: 0, drafts: 0, articles: 0, videos: 0 },
+  counts: { published: 0, drafts: 0, entries: 0, bySection: {} },
 };
 
 test.beforeEach(async ({ page }) => {
@@ -30,8 +35,8 @@ test.beforeEach(async ({ page }) => {
 test('empty publication does not show demo stories', async ({ page }) => {
   await page.route('**/api/site/', (route) => route.fulfill({ json: initial }));
   await page.goto('/home');
-  await expect(page.locator('h1')).toContainText('New perspectives are on the horizon.');
-  await expect(page.locator('.lead-image')).toHaveCount(0);
+  await expect(page.locator('h1')).toContainText('A shared perspective on');
+  await expect(page.locator('.entry-cover > img')).toHaveCount(0);
 });
 
 test('API connection failure exposes a retry action', async ({ page }) => {

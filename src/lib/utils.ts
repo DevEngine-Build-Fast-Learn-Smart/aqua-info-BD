@@ -1,9 +1,7 @@
-import type { Article, Language } from '../data/types';
+import type { Language } from '../data/types';
 
 export const localized = (language: Language, en: string, bn?: string) =>
   language === 'bn' && bn ? bn : en;
-export const articleTitle = (article: Article, language: Language) =>
-  localized(language, article.title, article.titleBn);
 export const slugify = (value: string) =>
   value
     .toLowerCase()

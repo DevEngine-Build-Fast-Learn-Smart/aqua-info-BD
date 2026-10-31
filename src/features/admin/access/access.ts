@@ -1,15 +1,9 @@
+import { contentSections, type ContentSection } from '../../../data/catalog';
 export type AdminModule =
-  | 'homepage'
-  | 'articles'
-  | 'videos'
-  | 'resources'
-  | 'market'
-  | 'categories'
-  | 'footer'
-  | 'settings'
-  | 'team';
+  ContentSection | 'homepage' | 'authors' | 'categories' | 'pages' | 'footer' | 'settings' | 'team';
 export type TeamRole = string;
 export interface TeamMember {
+  avatarUrl?: string;
   id: string;
   name: string;
   email: string;
@@ -26,41 +20,51 @@ export interface RoleDefinition {
   system?: boolean;
 }
 export const modules: { id: AdminModule; name: string; description: string }[] = [
-  { id: 'homepage', name: 'Homepage', description: 'Arrange sections and select the lead story.' },
   {
-    id: 'articles',
-    name: 'Stories & field reports',
-    description: 'Write, edit, and publish stories.',
+    id: 'homepage',
+    name: 'Homepage',
+    description: 'Arrange featured content and the latest updates.',
   },
-  { id: 'videos', name: 'Video reports', description: 'Publish video stories and manage footage.' },
-  { id: 'resources', name: 'Knowledge hub', description: 'Publish guides and manage documents.' },
+  ...contentSections.map((section) => ({
+    id: section.id,
+    name: section.name,
+    description: section.description,
+  })),
+  {
+    id: 'authors',
+    name: 'Authors & Contributors',
+    description: 'Manage public profiles and the website team.',
+  },
   {
     id: 'categories',
-    name: 'Editorial categories',
-    description: 'Organize the publication’s topics.',
+    name: 'Categories',
+    description: 'Manage topics within the client’s content sections.',
   },
   {
-    id: 'footer',
-    name: 'Website footer',
-    description: 'Manage footer content, links, and visibility.',
+    id: 'pages',
+    name: 'About & Editorial Policy',
+    description: 'Edit mission, team introduction, contact policy and submission guidance.',
   },
+  { id: 'footer', name: 'Website footer', description: 'Edit footer links and bilingual text.' },
   {
     id: 'settings',
-    name: 'Publication settings',
-    description: 'Edit the brand and contact details.',
+    name: 'Website settings',
+    description: 'Manage website logo, branding and contact details.',
   },
-  { id: 'team', name: 'Team & access', description: 'Reserved for the superadmin.' },
+  { id: 'team', name: 'Users & Role Access', description: 'Reserved for the superadmin.' },
 ];
 export const rolePermissions: Record<string, AdminModule[]> = {
   owner: modules.map((module) => module.id),
-  editor: ['homepage', 'articles', 'videos', 'resources', 'categories', 'footer'],
-  contributor: ['articles', 'videos', 'resources'],
+  editor: modules
+    .filter((module) => !['settings', 'team'].includes(module.id))
+    .map((module) => module.id),
+  contributor: contentSections.map((section) => section.id),
   viewer: [],
 };
 export const roleDescriptions: Record<string, string> = {
-  owner: 'Full publication access and team management.',
-  editor: 'Manage editorial content and the front page.',
-  contributor: 'Work on stories, videos, and knowledge resources.',
+  owner: 'Full website access and user management.',
+  editor: 'Manage content, profiles, pages and the homepage.',
+  contributor: 'Create and publish content in the assigned sections.',
   viewer: 'Read the workspace overview without editing access.',
 };
 export function initials(name: string) {
